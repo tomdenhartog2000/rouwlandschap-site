@@ -4,7 +4,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 
 type InputMode = "write" | "photo" | "draw" | "voice";
 type AiPath = "none" | "add" | "make";
-type AiAction = "image" | "sound" | null;
+type AiAction = "image" | "sound" | "motion" | null;
 type SharingChoice = "take" | "online" | "both";
 
 const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string }> = [
@@ -39,7 +39,8 @@ export default function MaakEenRouwdier() {
 
   const selectedInputs = inputs.filter((input) => modes.includes(input.id));
   const inputSummary = selectedInputs.map((input) => input.title.toLowerCase()).join(" + ");
-  const aiSummary = aiPath === "none" ? "zonder AI" : aiPath === "add" ? `${aiAction === "sound" ? "klank" : "beeld"} toevoegen met AI` : `${aiAction === "sound" ? "klank" : "beeld"} maken met AI`;
+  const actionLabel = aiAction === "sound" ? "klank" : aiAction === "motion" ? "beweging" : "beeld";
+  const aiSummary = aiPath === "none" ? "zonder AI" : aiPath === "add" ? `${actionLabel} toevoegen met AI` : `${actionLabel} maken met AI`;
 
   const toggleMode = (mode: InputMode) => {
     setModes((current) => {
@@ -159,7 +160,7 @@ export default function MaakEenRouwdier() {
             <button className={aiPath === "add" ? "is-selected" : ""} onClick={() => { setAiPath("add"); setIteration(1); }}><strong>Voeg iets toe met AI</strong><span>Laat AI reageren op wat je al hebt ingebracht.</span></button>
             <button className={aiPath === "make" ? "is-selected" : ""} onClick={() => { setAiPath("make"); setIteration(1); }}><strong>Maak iets met AI</strong><span>Begin met een idee, woord of korte omschrijving.</span></button>
           </div>
-          {aiPath !== "none" && <div className="ai-action-choice"><p className="feedback-question">{aiPath === "add" ? "Wat mag de AI toevoegen?" : "Wat wil je met AI maken?"}</p><div className="choice-list"><button className={aiAction === "image" ? "is-selected" : ""} onClick={() => setAiAction("image")}><strong>{aiPath === "add" ? "Voeg een beeld toe" : "Maak een beeld"}</strong><span>{aiPath === "add" ? "Bijvoorbeeld een achtergrond, uitbreiding of visuele reactie." : "Een nieuw beeld vanuit jouw idee of materiaal."}</span></button><button className={aiAction === "sound" ? "is-selected" : ""} onClick={() => setAiAction("sound")}><strong>{aiPath === "add" ? "Voeg een klank toe" : "Maak een klank"}</strong><span>Een korte auditieve reactie; dit testen we later als echte functie.</span></button></div>{aiPath === "make" && modes.length === 0 && <textarea className="feedback-field" value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Waar wil je mee beginnen?" aria-label="Jouw idee voor AI" />}{aiPath === "add" && modes.length === 0 && <p className="test-note">Kies eerst iets om aan toe te voegen, of kies ‘maak iets met AI’.</p>}</div>}
+          {aiPath !== "none" && <div className="ai-action-choice"><p className="feedback-question">{aiPath === "add" ? "Wat mag de AI toevoegen?" : "Wat wil je met AI maken?"}</p><div className="choice-list"><button className={aiAction === "image" ? "is-selected" : ""} onClick={() => setAiAction("image")}><strong>{aiPath === "add" ? "Voeg een beeld toe" : "Maak een beeld"}</strong><span>{aiPath === "add" ? "Bijvoorbeeld een achtergrond, uitbreiding of visuele reactie." : "Een nieuw beeld vanuit jouw idee of materiaal."}</span></button><button className={aiAction === "sound" ? "is-selected" : ""} onClick={() => setAiAction("sound")}><strong>{aiPath === "add" ? "Voeg een klank toe" : "Maak een klank"}</strong><span>Een korte auditieve reactie; dit testen we later als echte functie.</span></button>{aiPath === "add" && <button className={aiAction === "motion" ? "is-selected" : ""} onClick={() => setAiAction("motion")}><strong>Voeg beweging toe</strong><span>Een subtiele levende laag: zweven, verschuiven, groeien of langzaam verschijnen.</span></button>}</div>{aiPath === "make" && modes.length === 0 && <textarea className="feedback-field" value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Waar wil je mee beginnen?" aria-label="Jouw idee voor AI" />}{aiPath === "add" && modes.length === 0 && <p className="test-note">Kies eerst iets om aan toe te voegen, of kies ‘maak iets met AI’.</p>}</div>}
           <p className="test-note">In deze test wordt nog geen AI-uitvoer gemaakt. We onderzoeken eerst of deze keuzes begrijpelijk en prettig voelen.</p>
           <div className="step-actions"><button className="quiet-button" onClick={() => setStep(1)}>terug</button><button className="primary-button" disabled={aiPath === "add" && modes.length === 0 || aiPath !== "none" && !aiAction} onClick={() => setStep(aiPath === "none" ? 4 : 3)}>verder</button></div>
         </div>}
@@ -167,7 +168,7 @@ export default function MaakEenRouwdier() {
         {step === 3 && <div>
           <p className="eyebrow">3 van 4 · eerst alleen voor jou · ronde {iteration}</p><h1>Ruimte om terug te praten.</h1>
           <p className="lead">Een mogelijke AI-reactie verschijnt straks eerst hier, alleen voor jou. Niets krijgt automatisch een vorm of plek in het landschap.</p>
-          <div className="private-space"><span className="private-spark" aria-hidden="true" /><p>In deze test verschijnt hier nog geen AI-uitvoer. In de echte ervaring komt hier een private {aiAction === "sound" ? "klank" : "beeld"} {aiPath === "add" ? "naast jouw bijdrage" : "vanuit jouw idee of materiaal"}.</p></div>
+          <div className="private-space"><span className="private-spark" aria-hidden="true" /><p>In deze test verschijnt hier nog geen AI-uitvoer. In de echte ervaring komt hier een private {actionLabel} {aiPath === "add" ? "naast jouw bijdrage" : "vanuit jouw idee of materiaal"}.</p></div>
           <p className="feedback-question">Hoe wil je hiermee verder?</p>
           <div className="feedback-choices"><button className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>dit voelt passend</button><button className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>ik wil iets aanpassen</button><button className={feedbackDirection === "new" ? "is-selected" : ""} onClick={() => setFeedbackDirection("new")}>ik wil iets heel anders proberen</button><button className={feedbackDirection === "reject" ? "is-selected" : ""} onClick={() => setFeedbackDirection("reject")}>ik wil zonder AI verder</button></div>
           {feedbackDirection === "adjust" && <textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Wat mag anders, erbij of minder?" aria-label="Wat wil je aanpassen" />}
