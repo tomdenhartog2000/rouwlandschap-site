@@ -15,6 +15,14 @@ body,
   background: #101612;
 }
 
+html:has(.make-page),
+body:has(.make-page) {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .landscape-frame {
   display: block;
   width: 100%;
