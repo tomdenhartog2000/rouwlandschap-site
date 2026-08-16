@@ -115,6 +115,9 @@ body:has(.make-page) {
 .input-symbol { display: grid; flex: 0 0 28px; height: 28px; place-items: center; color: #dbe8cc; font-family: Georgia, serif; font-size: 1.1rem; }
 .input-option strong, .input-option small { display: block; }
 .input-option small { margin-top: 5px; color: rgba(232, 238, 229, .6); font-size: .76rem; line-height: 1.35; }
+.input-state { align-self: flex-start; margin-left: auto; padding: 4px 0 4px 8px; color: rgba(232, 238, 229, .48); font-size: .69rem; line-height: 1; white-space: nowrap; }
+.input-option.is-selected .input-state { color: #dce8cb; }
+.empty-input-message { margin: 0; padding: 26px 17px; color: rgba(232, 238, 229, .55); text-align: center; background: rgba(5, 9, 7, .2); border: 1px dashed rgba(232, 238, 229, .17); border-radius: 15px; }
 
 .input-surfaces { display: grid; gap: 12px; }
 .input-surface { min-height: 280px; padding: 17px; background: rgba(5, 9, 7, .32); border: 1px solid rgba(232, 238, 229, .14); border-radius: 15px; }
@@ -126,7 +129,10 @@ body:has(.make-page) {
 .photo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
 .secondary-button { padding: 10px 16px; color: #e8eee5; background: rgba(232, 238, 229, .08); border: 1px solid rgba(232, 238, 229, .22); border-radius: 999px; }
 .upload-spark { width: 11px; height: 11px; border-radius: 50%; background: #f0dea4; box-shadow: 0 0 19px 5px rgba(240, 222, 164, .48); }
-.photo-preview { max-width: 100%; max-height: 205px; border-radius: 8px; object-fit: contain; }
+.photo-previews { display: grid; width: min(100%, 440px); grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.photo-preview-card { position: relative; aspect-ratio: 1; margin: 0; overflow: hidden; border-radius: 8px; }
+.photo-preview { width: 100%; height: 100%; object-fit: cover; }
+.photo-preview-card button { position: absolute; top: 4px; right: 4px; display: grid; width: 21px; height: 21px; padding: 0; place-items: center; color: #fff; background: rgba(15, 20, 16, .68); border: 0; border-radius: 50%; cursor: pointer; font-size: 1rem; line-height: 1; }
 .upload-area small, .voice-area small { color: rgba(232, 238, 229, .59); }
 .drawing-area { position: relative; }
 .drawing-area canvas { display: block; width: 100%; height: 235px; touch-action: none; background: #e8eadf; border-radius: 8px; cursor: crosshair; }

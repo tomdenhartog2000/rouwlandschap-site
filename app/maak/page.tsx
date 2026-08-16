@@ -23,8 +23,7 @@ export default function MaakEenRouwdier() {
   const [feedback, setFeedback] = useState("");
   const [feedbackDirection, setFeedbackDirection] = useState<"keep" | "shift" | null>(null);
   const [isPubliclyConfirmed, setIsPubliclyConfirmed] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [photoName, setPhotoName] = useState("");
+  const [photos, setPhotos] = useState<Array<{ name: string; url: string }>>([]);
   const [audioUrl, setAudioUrl] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [microphoneError, setMicrophoneError] = useState(false);
@@ -39,7 +38,7 @@ export default function MaakEenRouwdier() {
 
   const toggleMode = (mode: InputMode) => {
     setModes((current) => {
-      if (current.includes(mode)) return current.length === 1 ? current : current.filter((item) => item !== mode);
+      if (current.includes(mode)) return current.filter((item) => item !== mode);
       return [...current, mode];
     });
   };
@@ -75,11 +74,11 @@ export default function MaakEenRouwdier() {
     const context = canvas?.getContext("2d");
     if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height);
   };
-  const handlePhoto = (file?: File) => {
-    if (!file) return;
-    setPhotoName(file.name);
-    setPhotoUrl(URL.createObjectURL(file));
+  const addPhotos = (files?: FileList | null) => {
+    if (!files?.length) return;
+    setPhotos((current) => [...current, ...Array.from(files).map((file) => ({ name: file.name, url: URL.createObjectURL(file) }))]);
   };
+  const removePhoto = (url: string) => setPhotos((current) => current.filter((photo) => photo.url !== url));
   const startRecording = async () => {
     setMicrophoneError(false);
     try {
@@ -107,12 +106,12 @@ export default function MaakEenRouwdier() {
         <p className="surface-label">{label}</p>
         {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
         {mode === "photo" && <div className="upload-area">
-          {photoUrl ? <img src={photoUrl} alt="Gekozen afbeelding" className="photo-preview" /> : <span className="upload-spark" aria-hidden="true" />}
+          {photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}
           <div className="photo-actions">
-            <label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
-            <label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
+            <label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label>
+            <label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label>
           </div>
-          {photoName && <small>{photoName}</small>}
+          {photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}
         </div>}
         {mode === "draw" && <div className="drawing-area">
           <canvas ref={canvasRef} width="720" height="420" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
@@ -140,10 +139,10 @@ export default function MaakEenRouwdier() {
 
         {step === 1 && <div>
           <p className="eyebrow">1 van 4 · een ingang kiezen</p><h1>Hoe wil je beginnen?</h1>
-          <p className="lead">Kies één of meerdere vormen. Ze mogen naast elkaar bestaan.</p>
-          <div className="input-options">{inputs.map((input) => <button key={input.id} aria-pressed={modes.includes(input.id)} className={`input-option ${modes.includes(input.id) ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className="input-symbol" aria-hidden="true">{input.symbol}</span><span><strong>{input.title}</strong><small>{input.text}</small></span></button>)}</div>
-          <div className="input-surfaces">{modes.map(renderInput)}</div>
-          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(0)}>terug</button><button className="primary-button" onClick={() => setStep(2)}>verder</button></div>
+          <p className="lead">Tik op een vorm om hem toe te voegen of weer weg te halen. Je kunt er meerdere tegelijk kiezen.</p>
+          <div className="input-options">{inputs.map((input) => { const isSelected = modes.includes(input.id); return <button key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className="input-symbol" aria-hidden="true">{input.symbol}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div>
+          {modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Kies minstens één vorm om verder te gaan.</p>}
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(0)}>terug</button><button className="primary-button" disabled={modes.length === 0} onClick={() => setStep(2)}>verder</button></div>
         </div>}
 
         {step === 2 && <div>
@@ -165,7 +164,7 @@ export default function MaakEenRouwdier() {
           <p className="feedback-question">Wat wil je erbij zeggen?</p>
           <div className="feedback-choices"><button className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>hier wil ik bij blijven</button><button className={feedbackDirection === "shift" ? "is-selected" : ""} onClick={() => setFeedbackDirection("shift")}>ik wil verder zoeken</button></div>
           <textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Wat herken je wel, wat niet, of wat ontbreekt er nog?" aria-label="Jouw reactie" />
-          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(2)}>terug</button><button className="primary-button" onClick={() => setStep(4)}>verder</button></div>
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(2)}>terug</button>{feedbackDirection === "shift" ? <button className="primary-button" onClick={() => { setFeedbackDirection(null); setStep(2); }}>kies een andere richting</button> : <button className="primary-button" onClick={() => setStep(4)}>verder</button>}</div>
         </div>}
 
         {step === 4 && <div>
