@@ -1346,6 +1346,13 @@ html&gt;body{padding:0}&lt;/style&gt;
         landscapeMenu.classList.toggle(&#x27;is-open&#x27;, willOpen);
       });
 
+      landscapeScene.addEventListener(&#x27;click&#x27;, (event) =&gt; {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!landscapeMenu.classList.contains(&#x27;is-open&#x27;) || target?.closest(&#x27;.landschappen-knop, .landschappen-menu, .stekjes-vonk&#x27;)) return;
+        landscapeButton.setAttribute(&#x27;aria-expanded&#x27;, &#x27;false&#x27;);
+        landscapeMenu.classList.remove(&#x27;is-open&#x27;);
+      });
+
       root.querySelectorAll(&#x27;.landschap-optie&#x27;).forEach((option) =&gt; {
         option.addEventListener(&#x27;click&#x27;, () =&gt; {
           const selected = landscapes[option.dataset.landschap];
