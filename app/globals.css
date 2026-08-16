@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+.landscape-shell {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #101612;
+}
+
+.landscape-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
