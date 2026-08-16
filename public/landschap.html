@@ -1261,9 +1261,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;/style&gt;
 
   &lt;section class=&quot;stekjes-landschap&quot; aria-label=&quot;Landschap met één bewegend rouwdier-vonkje&quot;&gt;
-    &lt;button type=&quot;button&quot; class=&quot;landschap-start&quot; id=&quot;landschap-start&quot; aria-label=&quot;Open het landschap schermvullend&quot;&gt;&lt;/button&gt;
-    &lt;div class=&quot;openingszin is-hidden&quot; id=&quot;openingszin&quot;&gt;Klik op een van de vonkjes om een rouwdier te openen.&lt;/div&gt;
-    &lt;div class=&quot;draai-hint&quot; id=&quot;draai-hint&quot;&gt;Draai je telefoon voor het landschap.&lt;/div&gt;
+    &lt;div class=&quot;openingszin&quot; id=&quot;openingszin&quot;&gt;Klik op een van de vonkjes om een rouwdier te openen.&lt;/div&gt;
     &lt;div class=&quot;landschap-naam&quot; id=&quot;landschap-naam&quot;&gt;Testlandschap&lt;/div&gt;
     &lt;button type=&quot;button&quot; class=&quot;stekjes-vonk&quot; aria-label=&quot;Open de herinnering aan de stekjes van oma&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;stekjes-bijdrage&quot;&gt;
       &lt;span aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
@@ -1300,8 +1298,6 @@ html&gt;body{padding:0}&lt;/style&gt;
       const landscapeMenu = root.querySelector(&#x27;#landschappen-menu&#x27;);
       const landscapeName = root.querySelector(&#x27;#landschap-naam&#x27;);
       const openingSentence = root.querySelector(&#x27;#openingszin&#x27;);
-      const landscapeStart = root.querySelector(&#x27;#landschap-start&#x27;);
-      const rotateHint = root.querySelector(&#x27;#draai-hint&#x27;);
       const modal = root.querySelector(&#x27;#stekjes-modal&#x27;);
       const landscapeScene = root.querySelector(&#x27;.stekjes-landschap&#x27;);
       const testBackground = getComputedStyle(landscapeScene).backgroundImage;
@@ -1329,21 +1325,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         root.querySelector(&#x27;.stekjes-sluiten&#x27;).focus();
       };
 
-      landscapeStart.addEventListener(&#x27;click&#x27;, () =&gt; {
-        landscapeStart.classList.add(&#x27;is-hidden&#x27;);
-        rotateHint.classList.add(&#x27;is-visible&#x27;);
-        showOpeningSentence();
-
-        const requestFullscreen = document.documentElement.requestFullscreen
-          || document.documentElement.webkitRequestFullscreen;
-        if (requestFullscreen) {
-          Promise.resolve(requestFullscreen.call(document.documentElement)).catch(() =&gt; {});
-        }
-
-        if (screen.orientation &amp;&amp; screen.orientation.lock) {
-          screen.orientation.lock(&#x27;landscape&#x27;).catch(() =&gt; {});
-        }
-      }, { once: true });
+      showOpeningSentence();
 
       spark.addEventListener(&#x27;click&#x27;, openContribution);
 
