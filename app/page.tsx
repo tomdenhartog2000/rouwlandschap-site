@@ -30,6 +30,17 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    const openMakeSpace = (event: MessageEvent) => {
+      if (event.data?.type === "rouwdier:open-make") {
+        window.location.assign("/maak");
+      }
+    };
+
+    window.addEventListener("message", openMakeSpace);
+    return () => window.removeEventListener("message", openMakeSpace);
+  }, []);
+
   const toggleFullscreen = async () => {
     const landscape = landscapeRef.current as FullscreenElement | null;
     const fullscreenDocument = document as FullscreenDocument;
@@ -65,10 +76,6 @@ export default function Home() {
       >
         <span className="fullscreen-icon" aria-hidden="true" />
       </button>
-      <a className="make-link" href="/maak">
-        <span className="make-link-spark" aria-hidden="true" />
-        vorm een rouwdier
-      </a>
     </main>
   );
 }

@@ -6,7 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Eerste Rouwdier</title>
-<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+<style>:root{color-scheme:dark;background:rgb(24 24 24)}html,body{width:100%;height:100%;margin:0;overflow:hidden}body{box-sizing:border-box;padding:0;background:inherit}iframe{display:block;width:100%;height:100dvh;margin:0;border:0}</style>
 </head>
 <body>
 <iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Eerste Rouwdier" srcdoc="&lt;!doctype html&gt;
@@ -1000,45 +1000,39 @@ html&gt;body{padding:0}&lt;/style&gt;
       pointer-events: none;
     }
 
-    #rouwstekjes-prototype .landschap-naam {
-      position: absolute;
-      right: 16px;
-      bottom: 14px;
-      z-index: 4;
-      color: rgba(255, 250, 241, .82);
-      text-shadow: 0 1px 5px rgba(13, 20, 27, .7);
-    }
-
     #rouwstekjes-prototype .landschappen-knop {
       position: absolute;
-      left: 14px;
-      top: 14px;
+      left: max(13px, env(safe-area-inset-left));
+      top: max(13px, env(safe-area-inset-top));
       z-index: 5;
-      display: grid;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       place-items: center;
-      width: 46px;
-      height: 46px;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
       padding: 0;
       border: 0;
-      border-radius: 50%;
       background: transparent;
       cursor: pointer;
     }
 
-    #rouwstekjes-prototype .landschappen-knop::before {
-      content: &#x27;&#x27;;
-      width: 8px;
-      height: 8px;
+    #rouwstekjes-prototype .landschappen-knop span {
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       background: rgba(255, 244, 211, .84);
       box-shadow: 0 0 7px rgba(255, 231, 169, .65), 0 0 16px rgba(255, 211, 116, .28);
       transition: transform .18s ease, opacity .18s ease;
     }
 
-    #rouwstekjes-prototype .landschappen-knop:hover::before,
-    #rouwstekjes-prototype .landschappen-knop:focus-visible::before,
-    #rouwstekjes-prototype .landschappen-knop[aria-expanded=&quot;true&quot;]::before {
-      transform: scale(1.25);
+    #rouwstekjes-prototype .landschappen-knop span:nth-child(2) { width: 7px; height: 7px; }
+
+    #rouwstekjes-prototype .landschappen-knop:hover span,
+    #rouwstekjes-prototype .landschappen-knop:focus-visible span,
+    #rouwstekjes-prototype .landschappen-knop[aria-expanded=&quot;true&quot;] span {
+      transform: scale(1.18);
       opacity: 1;
     }
 
@@ -1049,21 +1043,24 @@ html&gt;body{padding:0}&lt;/style&gt;
 
     #rouwstekjes-prototype .landschappen-menu {
       position: absolute;
-      left: 16px;
-      top: 56px;
+      left: max(14px, env(safe-area-inset-left));
+      top: max(61px, calc(env(safe-area-inset-top) + 50px));
       z-index: 6;
       display: none;
-      width: min(270px, calc(100% - 32px));
-      padding: 8px;
-      border: 1px solid rgba(255, 255, 255, .18);
-      border-radius: 13px;
-      background: rgba(22, 30, 40, .82);
+      width: min(258px, calc(100% - 28px));
+      padding: 14px;
+      border: 1px solid rgba(255, 232, 174, .25);
+      border-radius: 15px;
+      background: linear-gradient(145deg, rgba(35, 59, 51, .86), rgba(20, 35, 42, .78));
       color: #fffaf1;
       backdrop-filter: blur(12px);
-      box-shadow: 0 12px 32px rgba(10, 16, 23, .22);
+      box-shadow: 0 12px 32px rgba(10, 16, 23, .26);
     }
 
     #rouwstekjes-prototype .landschappen-menu.is-open { display: block; }
+    #rouwstekjes-prototype .menu-label { margin: 0 0 4px; color: rgba(255, 243, 209, .6); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+    #rouwstekjes-prototype .landschap-naam { margin: 0; color: #fff8e7; font-family: Georgia, serif; font-size: 1.08rem; }
+    #rouwstekjes-prototype .menu-scheiding { height: 1px; margin: 13px 0 8px; background: rgba(255, 239, 199, .18); }
     #rouwstekjes-prototype .landschap-optie {
       display: grid;
       grid-template-columns: 8px 1fr;
@@ -1093,6 +1090,19 @@ html&gt;body{padding:0}&lt;/style&gt;
     #rouwstekjes-prototype .landschap-optie:focus-visible { background: rgba(255, 255, 255, .08); color: #fffaf1; }
     #rouwstekjes-prototype .landschap-optie[aria-current=&quot;page&quot;] { color: #fffaf1; }
     #rouwstekjes-prototype .landschap-optie[aria-current=&quot;page&quot;]::before { background: #fff1c8; box-shadow: 0 0 7px rgba(255, 224, 153, .7); }
+    #rouwstekjes-prototype .bijdragen-optie {
+      width: 100%;
+      padding: 10px 7px 7px;
+      border: 0;
+      background: transparent;
+      color: #fff3cb;
+      font: inherit;
+      font-size: .9rem;
+      text-align: left;
+      cursor: pointer;
+    }
+    #rouwstekjes-prototype .bijdragen-optie:hover,
+    #rouwstekjes-prototype .bijdragen-optie:focus-visible { color: #fffdf4; text-decoration: underline; text-underline-offset: 3px; }
 
     #rouwstekjes-prototype .stekjes-vonk {
       position: absolute;
@@ -1246,9 +1256,8 @@ html&gt;body{padding:0}&lt;/style&gt;
 
     @media (max-width: 560px) {
       #rouwstekjes-prototype .stekjes-vonk { left: 25%; top: 58%; }
-      #rouwstekjes-prototype .landschappen-knop { left: max(9px, env(safe-area-inset-left)); top: max(9px, env(safe-area-inset-top)); }
-      #rouwstekjes-prototype .landschappen-menu { left: 11px; top: 50px; width: calc(100% - 22px); }
-      #rouwstekjes-prototype .landschap-naam { right: max(11px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); }
+      #rouwstekjes-prototype .landschappen-knop { left: max(11px, env(safe-area-inset-left)); top: max(11px, env(safe-area-inset-top)); }
+      #rouwstekjes-prototype .landschappen-menu { left: max(11px, env(safe-area-inset-left)); top: max(57px, calc(env(safe-area-inset-top) + 46px)); width: min(258px, calc(100% - 22px)); }
       #rouwstekjes-prototype .stekjes-modal { padding: 16px; }
       #rouwstekjes-prototype .stekjes-bijdrage { grid-template-columns: 1fr; padding: 16px; }
       #rouwstekjes-prototype .stekjes-foto { max-height: 42dvh; }
@@ -1262,15 +1271,20 @@ html&gt;body{padding:0}&lt;/style&gt;
 
   &lt;section class=&quot;stekjes-landschap&quot; aria-label=&quot;Landschap met één bewegend rouwdier-vonkje&quot;&gt;
     &lt;div class=&quot;openingszin&quot; id=&quot;openingszin&quot;&gt;Klik op een van de vonkjes om een rouwdier te openen.&lt;/div&gt;
-    &lt;div class=&quot;landschap-naam&quot; id=&quot;landschap-naam&quot;&gt;Testlandschap&lt;/div&gt;
     &lt;button type=&quot;button&quot; class=&quot;stekjes-vonk&quot; aria-label=&quot;Open de herinnering aan de stekjes van oma&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;stekjes-bijdrage&quot;&gt;
       &lt;span aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
     &lt;/button&gt;
-    &lt;button type=&quot;button&quot; class=&quot;landschappen-knop&quot; aria-label=&quot;Verken andere landschappen&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;landschappen-menu&quot;&gt;&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;landschappen-knop&quot; aria-label=&quot;Open landschappenmenu&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;landschappen-menu&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;span aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;span aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
     &lt;div class=&quot;landschappen-menu&quot; id=&quot;landschappen-menu&quot;&gt;
-      &lt;button type=&quot;button&quot; class=&quot;landschap-optie&quot; data-landschap=&quot;test&quot; aria-current=&quot;page&quot;&gt;Testlandschap&lt;/button&gt;
+      &lt;p class=&quot;menu-label&quot;&gt;je bent in&lt;/p&gt;
+      &lt;p class=&quot;landschap-naam&quot; id=&quot;landschap-naam&quot;&gt;Testlandschap&lt;/p&gt;
+      &lt;div class=&quot;menu-scheiding&quot;&gt;&lt;/div&gt;
+      &lt;p class=&quot;menu-label&quot;&gt;andere landschappen&lt;/p&gt;
+      &lt;button type=&quot;button&quot; class=&quot;landschap-optie&quot; data-landschap=&quot;test&quot; aria-current=&quot;page&quot; hidden&gt;Testlandschap&lt;/button&gt;
       &lt;button type=&quot;button&quot; class=&quot;landschap-optie&quot; data-landschap=&quot;museum&quot;&gt;Museumlandschap&lt;/button&gt;
       &lt;button type=&quot;button&quot; class=&quot;landschap-optie&quot; data-landschap=&quot;stilte&quot;&gt;Landschap van stilte&lt;/button&gt;
+      &lt;div class=&quot;menu-scheiding&quot;&gt;&lt;/div&gt;
+      &lt;button type=&quot;button&quot; class=&quot;bijdragen-optie&quot; data-open-maakruimte=&quot;true&quot;&gt;Wil jij iets toevoegen?&lt;/button&gt;
     &lt;/div&gt;
   &lt;/section&gt;
 
@@ -1348,9 +1362,13 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       landscapeScene.addEventListener(&#x27;click&#x27;, (event) =&gt; {
         const target = event.target instanceof Element ? event.target : null;
-        if (!landscapeMenu.classList.contains(&#x27;is-open&#x27;) || target?.closest(&#x27;.landschappen-knop, .landschappen-menu, .stekjes-vonk&#x27;)) return;
+        if (!landscapeMenu.classList.contains(&#x27;is-open&#x27;) || target?.closest(&#x27;.landschappen-knop, .landschappen-menu, .stekjes-vonk, .bijdragen-optie&#x27;)) return;
         landscapeButton.setAttribute(&#x27;aria-expanded&#x27;, &#x27;false&#x27;);
         landscapeMenu.classList.remove(&#x27;is-open&#x27;);
+      });
+
+      root.querySelector(&#x27;[data-open-maakruimte=&quot;true&quot;]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+        window.top.postMessage({ type: &#x27;rouwdier:open-make&#x27; }, &#x27;*&#x27;);
       });
 
       root.querySelectorAll(&#x27;.landschap-optie&#x27;).forEach((option) =&gt; {
@@ -1358,6 +1376,9 @@ html&gt;body{padding:0}&lt;/style&gt;
           const selected = landscapes[option.dataset.landschap];
           root.querySelectorAll(&#x27;.landschap-optie&#x27;).forEach((peer) =&gt; peer.removeAttribute(&#x27;aria-current&#x27;));
           option.setAttribute(&#x27;aria-current&#x27;, &#x27;page&#x27;);
+          root.querySelectorAll(&#x27;.landschap-optie&#x27;).forEach((peer) =&gt; {
+            peer.hidden = peer === option;
+          });
           landscapeName.textContent = selected.name;
           landscapeScene.style.backgroundImage = selected.image
             ? `linear-gradient(to top, rgba(15, 23, 31, .22), transparent 48%), url(&quot;${selected.image}&quot;)`
