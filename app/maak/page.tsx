@@ -15,11 +15,14 @@ const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string
 
 export default function MaakEenRouwdier() {
   const [step, setStep] = useState(0);
-  const [mode, setMode] = useState<InputMode>("write");
+  const [modes, setModes] = useState<InputMode[]>(["write"]);
   const [words, setWords] = useState("");
   const [title, setTitle] = useState("");
   const [aiChoice, setAiChoice] = useState<AiChoice>("none");
   const [sharing, setSharing] = useState<SharingChoice>("take");
+  const [feedback, setFeedback] = useState("");
+  const [feedbackDirection, setFeedbackDirection] = useState<"keep" | "shift" | null>(null);
+  const [isPubliclyConfirmed, setIsPubliclyConfirmed] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoName, setPhotoName] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
@@ -31,22 +34,26 @@ export default function MaakEenRouwdier() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
 
+  const selectedInputs = inputs.filter((input) => modes.includes(input.id));
+  const inputSummary = selectedInputs.map((input) => input.title.toLowerCase()).join(" + ");
+
+  const toggleMode = (mode: InputMode) => {
+    setModes((current) => {
+      if (current.includes(mode)) return current.length === 1 ? current : current.filter((item) => item !== mode);
+      return [...current, mode];
+    });
+  };
+
   const drawAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
-
     const rect = canvas.getBoundingClientRect();
-    const point = {
-      x: (event.clientX - rect.left) * (canvas.width / rect.width),
-      y: (event.clientY - rect.top) * (canvas.height / rect.height),
-    };
-
+    const point = { x: (event.clientX - rect.left) * (canvas.width / rect.width), y: (event.clientY - rect.top) * (canvas.height / rect.height) };
     context.strokeStyle = "#2d4134";
     context.lineWidth = 3.5;
     context.lineCap = "round";
     context.lineJoin = "round";
-
     if (lastPoint.current) {
       context.beginPath();
       context.moveTo(lastPoint.current.x, lastPoint.current.y);
@@ -61,28 +68,18 @@ export default function MaakEenRouwdier() {
     event.currentTarget.setPointerCapture(event.pointerId);
     drawAt(event);
   };
-
-  const continueDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (drawing.current) drawAt(event);
-  };
-
-  const endDrawing = () => {
-    drawing.current = false;
-    lastPoint.current = null;
-  };
-
+  const continueDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (drawing.current) drawAt(event); };
+  const endDrawing = () => { drawing.current = false; lastPoint.current = null; };
   const clearDrawing = () => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height);
   };
-
   const handlePhoto = (file?: File) => {
     if (!file) return;
     setPhotoName(file.name);
     setPhotoUrl(URL.createObjectURL(file));
   };
-
   const startRecording = async () => {
     setMicrophoneError(false);
     try {
@@ -91,126 +88,106 @@ export default function MaakEenRouwdier() {
       audioChunks.current = [];
       recorder.ondataavailable = (event) => audioChunks.current.push(event.data);
       recorder.onstop = () => {
-        const recording = new Blob(audioChunks.current, { type: recorder.mimeType || "audio/webm" });
-        setAudioUrl(URL.createObjectURL(recording));
+        setAudioUrl(URL.createObjectURL(new Blob(audioChunks.current, { type: recorder.mimeType || "audio/webm" })));
         stream.getTracks().forEach((track) => track.stop());
         setIsRecording(false);
       };
       recorderRef.current = recorder;
       recorder.start();
       setIsRecording(true);
-    } catch {
-      setMicrophoneError(true);
-    }
+    } catch { setMicrophoneError(true); }
   };
-
   const stopRecording = () => recorderRef.current?.stop();
-  const activeInput = inputs.find((input) => input.id === mode) ?? inputs[0];
+  const chooseSharing = (choice: SharingChoice) => { setSharing(choice); setIsPubliclyConfirmed(false); };
+
+  const renderInput = (mode: InputMode) => {
+    const label = inputs.find((input) => input.id === mode)?.title;
+    return (
+      <div className="input-surface" key={mode}>
+        <p className="surface-label">{label}</p>
+        {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
+        {mode === "photo" && <div className="upload-area">
+          {photoUrl ? <img src={photoUrl} alt="Gekozen afbeelding" className="photo-preview" /> : <span className="upload-spark" aria-hidden="true" />}
+          <div className="photo-actions">
+            <label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
+            <label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
+          </div>
+          {photoName && <small>{photoName}</small>}
+        </div>}
+        {mode === "draw" && <div className="drawing-area">
+          <canvas ref={canvasRef} width="720" height="420" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
+          <button className="clear-button" onClick={clearDrawing}>wis tekening</button>
+        </div>}
+        {mode === "voice" && <div className="voice-area">
+          {!audioUrl && <p>Je opname blijft in deze test op je eigen toestel.</p>}
+          {audioUrl && <audio controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}
+          <button className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin met inspreken"}</button>
+          {microphoneError && <small>De microfoon is niet beschikbaar. Je kunt ook schrijven, tekenen of een foto kiezen.</small>}
+        </div>}
+      </div>
+    );
+  };
 
   return (
     <main className="make-page">
-      <header className="make-header">
-        <a href="/" className="back-link">← terug naar het landschap</a>
-        <span className="make-mark" aria-hidden="true" />
-      </header>
-
+      <header className="make-header"><a href="/" className="back-link">← terug naar het landschap</a><span className="make-mark" aria-hidden="true" /></header>
       <section className="make-card" aria-live="polite">
-        {step === 0 && (
-          <div className="make-intro">
-            <p className="eyebrow">een mogelijke vorm</p>
-            <h1>Geef een rouwdier ruimte.</h1>
-            <p className="lead">Je hoeft niets af te maken, te verklaren of achter te laten. Je kunt ook gewoon kijken.</p>
-            <button className="primary-button" onClick={() => setStep(1)}>begin wanneer je wilt</button>
-          </div>
-        )}
+        {step === 0 && <div className="make-intro">
+          <p className="eyebrow">een mogelijke vorm</p><h1>Geef een rouwdier ruimte.</h1>
+          <p className="lead">Je hoeft niets af te maken, te verklaren of achter te laten. Je kunt ook gewoon kijken.</p>
+          <button className="primary-button" onClick={() => setStep(1)}>begin wanneer je wilt</button>
+        </div>}
 
-        {step === 1 && (
-          <div>
-            <p className="eyebrow">1 van 3 · een ingang kiezen</p>
-            <h1>Hoe wil je beginnen?</h1>
-            <p className="lead">Kies een vorm die nu past. Je kunt later iets anders kiezen of stoppen.</p>
-            <div className="input-options">
-              {inputs.map((input) => (
-                <button key={input.id} className={`input-option ${mode === input.id ? "is-selected" : ""}`} onClick={() => setMode(input.id)}>
-                  <span className="input-symbol" aria-hidden="true">{input.symbol}</span>
-                  <span><strong>{input.title}</strong><small>{input.text}</small></span>
-                </button>
-              ))}
-            </div>
+        {step === 1 && <div>
+          <p className="eyebrow">1 van 4 · een ingang kiezen</p><h1>Hoe wil je beginnen?</h1>
+          <p className="lead">Kies één of meerdere vormen. Ze mogen naast elkaar bestaan.</p>
+          <div className="input-options">{inputs.map((input) => <button key={input.id} aria-pressed={modes.includes(input.id)} className={`input-option ${modes.includes(input.id) ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className="input-symbol" aria-hidden="true">{input.symbol}</span><span><strong>{input.title}</strong><small>{input.text}</small></span></button>)}</div>
+          <div className="input-surfaces">{modes.map(renderInput)}</div>
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(0)}>terug</button><button className="primary-button" onClick={() => setStep(2)}>verder</button></div>
+        </div>}
 
-            <div className="input-surface">
-              <p className="surface-label">{activeInput.title}</p>
-              {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
-              {mode === "photo" && (
-                <div className="upload-area">
-                  {photoUrl ? <img src={photoUrl} alt="Gekozen afbeelding" className="photo-preview" /> : <span className="upload-spark" aria-hidden="true" />}
-                  <div className="photo-actions">
-                    <label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
-                    <label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
-                  </div>
-                  {photoName && <small>{photoName}</small>}
-                </div>
-              )}
-              {mode === "draw" && (
-                <div className="drawing-area">
-                  <canvas ref={canvasRef} width="720" height="420" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
-                  <button className="clear-button" onClick={clearDrawing}>wis tekening</button>
-                </div>
-              )}
-              {mode === "voice" && (
-                <div className="voice-area">
-                  {!audioUrl && <p>Je opname blijft in deze test op je eigen toestel.</p>}
-                  {audioUrl && <audio controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}
-                  <button className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin met inspreken"}</button>
-                  {microphoneError && <small>De microfoon is niet beschikbaar. Je kunt ook schrijven, tekenen of een foto kiezen.</small>}
-                </div>
-              )}
-            </div>
-            <div className="step-actions"><button className="quiet-button" onClick={() => setStep(0)}>terug</button><button className="primary-button" onClick={() => setStep(2)}>verder</button></div>
+        {step === 2 && <div>
+          <p className="eyebrow">2 van 4 · ruimte voor AI</p><h1>Wat mag de AI hiermee doen?</h1>
+          <p className="lead">AI is een mogelijke manier van verder kijken, niet de definitie van je rouwdier.</p>
+          <div className="choice-list">
+            <button className={aiChoice === "none" ? "is-selected" : ""} onClick={() => setAiChoice("none")}><strong>Laat het zoals het is</strong><span>Geen AI-verwerking.</span></button>
+            <button className={aiChoice === "one" ? "is-selected" : ""} onClick={() => setAiChoice("one")}><strong>Vraag om één mogelijke richting</strong><span>Een reactie die je mag herkennen, afwijzen of veranderen.</span></button>
+            <button className={aiChoice === "many" ? "is-selected" : ""} onClick={() => setAiChoice("many")}><strong>Vraag om verschillende richtingen</strong><span>Een paar mogelijke manieren van verder kijken, zonder juiste uitkomst.</span></button>
           </div>
-        )}
+          <p className="test-note">In deze test wordt nog geen AI-reactie gemaakt. We onderzoeken eerst of deze keuze begrijpelijk en prettig voelt.</p>
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(1)}>terug</button><button className="primary-button" onClick={() => setStep(3)}>verder</button></div>
+        </div>}
 
-        {step === 2 && (
-          <div>
-            <p className="eyebrow">2 van 3 · ruimte voor AI</p>
-            <h1>Wat mag er met je vorm gebeuren?</h1>
-            <p className="lead">AI is hier een mogelijke manier van verder kijken, niet de definitie van je rouwdier.</p>
-            <div className="choice-list">
-              <button className={aiChoice === "none" ? "is-selected" : ""} onClick={() => setAiChoice("none")}><strong>Laat het zoals het is</strong><span>Geen AI-verwerking.</span></button>
-              <button className={aiChoice === "one" ? "is-selected" : ""} onClick={() => setAiChoice("one")}><strong>Vraag om één mogelijke vorm</strong><span>Een voorstel dat je mag herkennen, afwijzen of veranderen.</span></button>
-              <button className={aiChoice === "many" ? "is-selected" : ""} onClick={() => setAiChoice("many")}><strong>Vraag om meerdere mogelijke vormen</strong><span>Verschillende richtingen, zonder dat één ervan de juiste hoeft te zijn.</span></button>
-            </div>
-            <p className="test-note">In deze eerste test wordt nog geen AI-uitvoer gemaakt. We onderzoeken eerst of deze keuze begrijpelijk en prettig voelt.</p>
-            <div className="step-actions"><button className="quiet-button" onClick={() => setStep(1)}>terug</button><button className="primary-button" onClick={() => setStep(3)}>verder</button></div>
-          </div>
-        )}
+        {step === 3 && <div>
+          <p className="eyebrow">3 van 4 · eerst alleen voor jou</p><h1>Ruimte om terug te praten.</h1>
+          <p className="lead">Een mogelijke AI-reactie verschijnt straks eerst hier, alleen voor jou. Niets krijgt automatisch een vorm of plek in het landschap.</p>
+          <div className="private-space"><span className="private-spark" aria-hidden="true" /><p>{aiChoice === "none" ? "Je hebt gekozen om zonder AI verder te gaan." : "In deze test verschijnt hier nog geen AI-reactie."}</p></div>
+          <p className="feedback-question">Wat wil je erbij zeggen?</p>
+          <div className="feedback-choices"><button className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>hier wil ik bij blijven</button><button className={feedbackDirection === "shift" ? "is-selected" : ""} onClick={() => setFeedbackDirection("shift")}>ik wil verder zoeken</button></div>
+          <textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Wat herken je wel, wat niet, of wat ontbreekt er nog?" aria-label="Jouw reactie" />
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(2)}>terug</button><button className="primary-button" onClick={() => setStep(4)}>verder</button></div>
+        </div>}
 
-        {step === 3 && (
-          <div>
-            <p className="eyebrow">3 van 3 · iets wel of niet achterlaten</p>
-            <h1>Waar mag deze vorm leven?</h1>
-            <p className="lead">Alles is anoniem. Een naam voor je rouwdier mag, maar hoeft niet.</p>
-            <label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label>
-            <div className="choice-list sharing-list">
-              <button className={sharing === "take" ? "is-selected" : ""} onClick={() => setSharing("take")}><strong>Ik neem het weer mee</strong><span>Er blijft niets in het landschap achter.</span></button>
-              <button className={sharing === "online" ? "is-selected" : ""} onClick={() => setSharing("online")}><strong>Het mag anoniem online leven</strong><span>Als klein rouwdier in een passend landschap.</span></button>
-              <button className={sharing === "both" ? "is-selected" : ""} onClick={() => setSharing("both")}><strong>Het mag ook worden overwogen voor de fysieke tentoonstelling</strong><span>Naast de online mogelijkheid; dit is geen garantie dat het getoond wordt.</span></button>
-            </div>
-            <p className="test-note">Dit is een testsituatie: er wordt nu niets bewaard, doorgestuurd of tentoongesteld.</p>
-            <div className="step-actions"><button className="quiet-button" onClick={() => setStep(2)}>terug</button><button className="primary-button" onClick={() => setStep(4)}>rond af</button></div>
+        {step === 4 && <div>
+          <p className="eyebrow">4 van 4 · wel of niet achterlaten</p><h1>Waar mag deze bijdrage leven?</h1>
+          <p className="lead">Alles is anoniem. Een naam voor je rouwdier mag, maar hoeft niet.</p>
+          <label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label>
+          <div className="choice-list sharing-list">
+            <button className={sharing === "take" ? "is-selected" : ""} onClick={() => chooseSharing("take")}><strong>Ik neem het weer mee</strong><span>Er verschijnt niets in het landschap.</span></button>
+            <button className={sharing === "online" ? "is-selected" : ""} onClick={() => chooseSharing("online")}><strong>Het mag anoniem in het landschap leven</strong><span>De vonk opent jouw bijdrage voor bezoekers.</span></button>
+            <button className={sharing === "both" ? "is-selected" : ""} onClick={() => chooseSharing("both")}><strong>Het mag ook worden overwogen voor de fysieke tentoonstelling</strong><span>Naast de online mogelijkheid; dit is geen garantie dat het getoond wordt.</span></button>
           </div>
-        )}
+          {sharing !== "take" && <label className="consent-field"><input type="checkbox" checked={isPubliclyConfirmed} onChange={(event) => setIsPubliclyConfirmed(event.target.checked)} /><span>Ik begrijp dat bezoekers mijn bijdrage kunnen openen wanneer zij op de vonk klikken.</span></label>}
+          <p className="test-note">Dit is een testsituatie: er wordt nu niets bewaard, doorgestuurd of tentoongesteld.</p>
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(3)}>terug</button><button className="primary-button" disabled={sharing !== "take" && !isPubliclyConfirmed} onClick={() => setStep(5)}>rond af</button></div>
+        </div>}
 
-        {step === 4 && (
-          <div className="make-intro completion">
-            <span className="completion-spark" aria-hidden="true" />
-            <p className="eyebrow">dank je</p>
-            <h1>{title ? `${title} heeft even ruimte gekregen.` : "Je vorm heeft even ruimte gekregen."}</h1>
-            <p className="lead">In deze test blijft alles alleen op dit toestel. Er is niets opgeslagen of toegevoegd aan het landschap.</p>
-            <div className="completion-summary"><span>{activeInput.title.toLowerCase()}</span><span>{aiChoice === "none" ? "zonder AI" : aiChoice === "one" ? "één mogelijke AI-vorm" : "meerdere mogelijke AI-vormen"}</span><span>{sharing === "take" ? "weer meenemen" : sharing === "online" ? "online achterlaten" : "online + mogelijk fysiek"}</span></div>
-            <a className="primary-button link-button" href="/">terug naar het landschap</a>
-          </div>
-        )}
+        {step === 5 && <div className="make-intro completion">
+          <span className="completion-spark" aria-hidden="true" /><p className="eyebrow">dank je</p><h1>{title ? `${title} heeft even ruimte gekregen.` : "Je vorm heeft even ruimte gekregen."}</h1>
+          <p className="lead">In deze test blijft alles alleen op dit toestel. Er is niets opgeslagen of toegevoegd aan het landschap.</p>
+          <div className="completion-summary"><span>{inputSummary}</span><span>{aiChoice === "none" ? "zonder AI" : aiChoice === "one" ? "één mogelijke AI-richting" : "meerdere AI-richtingen"}</span><span>{sharing === "take" ? "weer meenemen" : sharing === "online" ? "online laten leven" : "online + mogelijk fysiek"}</span></div>
+          <a className="primary-button link-button" href="/">terug naar het landschap</a>
+        </div>}
       </section>
     </main>
   );
