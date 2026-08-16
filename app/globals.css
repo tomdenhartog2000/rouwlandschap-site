@@ -62,6 +62,34 @@ body,
     linear-gradient(currentColor, currentColor) right bottom / 1.5px 6px no-repeat;
 }
 
+.make-link {
+  position: absolute;
+  z-index: 5;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: max(14px, env(safe-area-inset-left));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 250, 238, 0.8);
+  font-size: .78rem;
+  letter-spacing: .015em;
+  text-decoration: none;
+  text-shadow: 0 1px 8px rgba(8, 13, 10, .76);
+  opacity: .76;
+  transition: opacity 180ms ease;
+}
+
+.make-link:hover,
+.make-link:focus-visible { opacity: 1; outline: none; }
+
+.make-link-spark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f2dd9f;
+  box-shadow: 0 0 9px 2px rgba(242, 221, 159, .54);
+}
+
 .make-page {
   min-height: 100dvh;
   padding: max(22px, env(safe-area-inset-top)) 18px 36px;

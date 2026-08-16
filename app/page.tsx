@@ -65,6 +65,10 @@ export default function Home() {
       >
         <span className="fullscreen-icon" aria-hidden="true" />
       </button>
+      <a className="make-link" href="/maak">
+        <span className="make-link-spark" aria-hidden="true" />
+        vorm een rouwdier
+      </a>
     </main>
   );
 }
