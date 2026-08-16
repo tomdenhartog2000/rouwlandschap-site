@@ -21,7 +21,7 @@ export default function MaakEenRouwdier() {
   const [aiChoice, setAiChoice] = useState<AiChoice>("none");
   const [sharing, setSharing] = useState<SharingChoice>("take");
   const [feedback, setFeedback] = useState("");
-  const [feedbackDirection, setFeedbackDirection] = useState<"keep" | "shift" | "reject" | null>(null);
+  const [feedbackDirection, setFeedbackDirection] = useState<"keep" | "adjust" | "new" | "reject" | null>(null);
   const [iteration, setIteration] = useState(1);
   const [isPubliclyConfirmed, setIsPubliclyConfirmed] = useState(false);
   const [photos, setPhotos] = useState<Array<{ name: string; url: string }>>([]);
@@ -163,10 +163,11 @@ export default function MaakEenRouwdier() {
           <p className="eyebrow">3 van 4 · eerst alleen voor jou · ronde {iteration}</p><h1>Ruimte om terug te praten.</h1>
           <p className="lead">Een mogelijke AI-reactie verschijnt straks eerst hier, alleen voor jou. Niets krijgt automatisch een vorm of plek in het landschap.</p>
           <div className="private-space"><span className="private-spark" aria-hidden="true" /><p>In deze test verschijnt hier nog geen AI-reactie. In de echte ervaring komt hier een nieuwe, private reactie op precies dezelfde bijdrage.</p></div>
-          <p className="feedback-question">Wat wil je erbij zeggen?</p>
-          <div className="feedback-choices"><button className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>hier zit iets in</button><button className={feedbackDirection === "shift" ? "is-selected" : ""} onClick={() => setFeedbackDirection("shift")}>ik wil verder zoeken</button><button className={feedbackDirection === "reject" ? "is-selected" : ""} onClick={() => setFeedbackDirection("reject")}>dit past niet</button></div>
-          <textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Wat herken je wel, wat niet, of wat ontbreekt er nog?" aria-label="Jouw reactie" />
-          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(2)}>terug</button>{feedbackDirection === "shift" ? <button className="primary-button" onClick={() => { setIteration((current) => current + 1); setFeedbackDirection(null); setFeedback(""); }}>vraag opnieuw</button> : feedbackDirection === "reject" ? <button className="primary-button" onClick={() => { setAiChoice("none"); setStep(4); }}>ga verder zonder deze reactie</button> : <button className="primary-button" onClick={() => setStep(4)}>verder</button>}</div>
+          <p className="feedback-question">Hoe wil je hiermee verder?</p>
+          <div className="feedback-choices"><button className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>dit voelt passend</button><button className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>ik wil iets aanpassen</button><button className={feedbackDirection === "new" ? "is-selected" : ""} onClick={() => setFeedbackDirection("new")}>ik wil iets heel anders proberen</button><button className={feedbackDirection === "reject" ? "is-selected" : ""} onClick={() => setFeedbackDirection("reject")}>ik wil zonder AI verder</button></div>
+          {feedbackDirection === "adjust" && <textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Wat mag anders, erbij of minder?" aria-label="Wat wil je aanpassen" />}
+          {feedbackDirection === "new" && <textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Wat wil je deze keer anders onderzoeken?" aria-label="Wat wil je anders proberen" />}
+          <div className="step-actions"><button className="quiet-button" onClick={() => setStep(2)}>terug</button>{feedbackDirection === "adjust" ? <button className="primary-button" onClick={() => { setIteration((current) => current + 1); setFeedbackDirection(null); setFeedback(""); }}>pas deze richting aan</button> : feedbackDirection === "new" ? <button className="primary-button" onClick={() => { setIteration((current) => current + 1); setFeedbackDirection(null); setFeedback(""); }}>vraag iets anders</button> : feedbackDirection === "reject" ? <button className="primary-button" onClick={() => { setAiChoice("none"); setStep(4); }}>ga verder zonder AI</button> : <button className="primary-button" onClick={() => setStep(4)}>verder</button>}</div>
         </div>}
 
         {step === 4 && <div>
