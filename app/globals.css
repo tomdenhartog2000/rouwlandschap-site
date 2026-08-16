@@ -122,6 +122,7 @@ body:has(.make-page) {
 .input-surface textarea::placeholder { color: rgba(232, 238, 229, .4); }
 .upload-area, .voice-area { display: grid; min-height: 225px; place-items: center; align-content: center; gap: 15px; text-align: center; }
 .upload-area input { display: none; }
+.photo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
 .secondary-button { padding: 10px 16px; color: #e8eee5; background: rgba(232, 238, 229, .08); border: 1px solid rgba(232, 238, 229, .22); border-radius: 999px; }
 .upload-spark { width: 11px; height: 11px; border-radius: 50%; background: #f0dea4; box-shadow: 0 0 19px 5px rgba(240, 222, 164, .48); }
 .photo-preview { max-width: 100%; max-height: 205px; border-radius: 8px; object-fit: contain; }

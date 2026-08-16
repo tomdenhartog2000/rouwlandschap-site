@@ -144,7 +144,10 @@ export default function MaakEenRouwdier() {
               {mode === "photo" && (
                 <div className="upload-area">
                   {photoUrl ? <img src={photoUrl} alt="Gekozen afbeelding" className="photo-preview" /> : <span className="upload-spark" aria-hidden="true" />}
-                  <label className="secondary-button">maak of kies een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
+                  <div className="photo-actions">
+                    <label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
+                    <label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" onChange={(event) => handlePhoto(event.target.files?.[0])} /></label>
+                  </div>
                   {photoName && <small>{photoName}</small>}
                 </div>
               )}
