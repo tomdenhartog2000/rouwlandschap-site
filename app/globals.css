@@ -221,6 +221,13 @@ body:has(.make-page) {
 .input-option { gap: 11px; padding: 14px; color: #2e2b26; background: transparent; border: 1px solid #cfc7ba; border-radius: 3px; }
 .input-option.is-selected, .input-option:hover { background: #ebe6dc; border-color: #6b655b; }
 .input-symbol { color: #6b655b; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-size: 18px; }
+.input-symbol-camera, .input-symbol-microphone { position: relative; width: 22px; font-size: 0; }
+.input-symbol-camera::before { content: ""; width: 16px; height: 11px; border: 1.5px solid currentColor; border-radius: 2px; }
+.input-symbol-camera::after { content: ""; position: absolute; top: 6px; width: 4px; height: 4px; border: 1.5px solid currentColor; border-radius: 50%; }
+.input-symbol-camera span { position: absolute; top: 5px; left: 6px; width: 5px; height: 2px; border: 1.5px solid currentColor; border-bottom: 0; border-radius: 2px 2px 0 0; }
+.input-symbol-microphone span { width: 7px; height: 12px; border: 1.5px solid currentColor; border-radius: 6px; }
+.input-symbol-microphone::before { content: ""; position: absolute; top: 12px; width: 11px; height: 6px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 8px 8px; }
+.input-symbol-microphone::after { content: ""; position: absolute; top: 19px; width: 1.5px; height: 4px; background: currentColor; box-shadow: -3px 4px 0 -0.2px currentColor, 3px 4px 0 -0.2px currentColor; }
 .input-option strong { font-size: 16px; font-weight: 400; }
 .input-option small { margin-top: 4px; color: #6b655b; font-size: 14px; line-height: 1.35; }
 .input-state { color: #6b655b; font-size: 12px; }

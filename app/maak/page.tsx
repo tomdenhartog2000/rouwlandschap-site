@@ -10,9 +10,9 @@ type SharingChoice = "take" | "online" | "both";
 
 const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string }> = [
   { id: "write", title: "Schrijven", text: "Een herinnering, zin, woord of iets dat nog geen vorm heeft.", symbol: "Aa" },
-  { id: "photo", title: "Foto maken", text: "Van iets dat je bij je hebt, maakte of tegenkwam.", symbol: "◒" },
+  { id: "photo", title: "Foto toevoegen", text: "Maak een foto of kies een of meer foto’s uit je galerij.", symbol: "camera" },
   { id: "draw", title: "Tekenen", text: "Een spoor, schets of vorm. Het hoeft niets voor te stellen.", symbol: "〰" },
-  { id: "voice", title: "Inspreken", text: "Een verhaal, geluid, stilte of een paar woorden.", symbol: "◌" },
+  { id: "voice", title: "Geluidsopname", text: "Spreek iets in, maak een klank of neem een moment van geluid op.", symbol: "microphone" },
   { id: "reference", title: "Aanwijzen", text: "Een liedje, gezegde, gedicht, tekst of plek die er al is.", symbol: "↗" },
 ];
 
@@ -139,7 +139,7 @@ export default function MaakEenRouwdier() {
         {mode === "voice" && <div className="voice-area">
           {!audioUrl && <p>Je opname blijft in deze test op je eigen toestel.</p>}
           {audioUrl && <audio controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}
-          <button className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin met inspreken"}</button>
+          <button className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin opname"}</button>
           {microphoneError && <small>De microfoon is niet beschikbaar. Je kunt ook schrijven, tekenen of een foto kiezen.</small>}
         </div>}
       </div>
@@ -159,7 +159,7 @@ export default function MaakEenRouwdier() {
         {step === 1 && <div>
           <p className="eyebrow">1 van 4 · een ingang kiezen</p><h1>Hoe wil je beginnen?</h1>
           <p className="lead">Tik op een vorm om hem toe te voegen of weer weg te halen. Je kunt er meerdere tegelijk kiezen.</p>
-          <div className="input-options">{inputs.map((input) => { const isSelected = modes.includes(input.id); return <button key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className="input-symbol" aria-hidden="true">{input.symbol}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div>
+          <div className="input-options">{inputs.map((input) => { const isSelected = modes.includes(input.id); return <button key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div>
           {modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt nu iets kiezen, of straks direct met AI beginnen.</p>}
           <div className="step-actions"><button className="quiet-button" onClick={() => setStep(0)}>terug</button><button className="primary-button" onClick={() => setStep(2)}>verder</button></div>
         </div>}
