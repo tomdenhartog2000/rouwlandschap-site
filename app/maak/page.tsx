@@ -2,7 +2,7 @@
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
-type InputMode = "write" | "photo" | "draw" | "voice";
+type InputMode = "write" | "photo" | "draw" | "voice" | "reference";
 type AiPath = "none" | "add" | "make";
 type AiAction = "image" | "sound" | "motion" | null;
 type BackgroundStyle = "natural" | "abstract" | "quiet" | null;
@@ -13,12 +13,15 @@ const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string
   { id: "photo", title: "Foto maken", text: "Van iets dat je bij je hebt, maakte of tegenkwam.", symbol: "◒" },
   { id: "draw", title: "Tekenen", text: "Een spoor, schets of vorm. Het hoeft niets voor te stellen.", symbol: "〰" },
   { id: "voice", title: "Inspreken", text: "Een verhaal, geluid, stilte of een paar woorden.", symbol: "◌" },
+  { id: "reference", title: "Aanwijzen", text: "Een liedje, gezegde, gedicht, tekst of plek die er al is.", symbol: "↗" },
 ];
 
 export default function MaakEenRouwdier() {
   const [step, setStep] = useState(0);
   const [modes, setModes] = useState<InputMode[]>(["write"]);
   const [words, setWords] = useState("");
+  const [reference, setReference] = useState("");
+  const [referenceLink, setReferenceLink] = useState("");
   const [title, setTitle] = useState("");
   const [aiPath, setAiPath] = useState<AiPath>("none");
   const [aiAction, setAiAction] = useState<AiAction>(null);
@@ -116,6 +119,11 @@ export default function MaakEenRouwdier() {
       <div className="input-surface" key={mode}>
         <p className="surface-label">{label}</p>
         {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
+        {mode === "reference" && <div className="reference-area">
+          <label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label>
+          <label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => setReferenceLink(event.target.value)} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>
+          <p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p>
+        </div>}
         {mode === "photo" && <div className="upload-area">
           {photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}
           <div className="photo-actions">
@@ -140,7 +148,7 @@ export default function MaakEenRouwdier() {
 
   return (
     <main className="make-page">
-      <header className="make-header"><a href="/" className="back-link">← terug naar het landschap</a><span className="make-mark" aria-hidden="true" /></header>
+      <header className="make-header"><a href="/" className="back-link">← terug naar het landschap</a></header>
       <section className="make-card" aria-live="polite">
         {step === 0 && <div className="make-intro">
           <p className="eyebrow">een mogelijke vorm</p><h1>Geef een rouwdier ruimte.</h1>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 
 * {
   box-sizing: border-box;
@@ -124,6 +125,14 @@ body:has(.make-page) {
 .surface-label { margin: 0 0 10px; color: #bdcfb3; font-size: .82rem; }
 .input-surface textarea { width: 100%; min-height: 220px; resize: vertical; color: #eef3e9; background: transparent; border: 0; outline: 0; font: 1.15rem/1.65 Georgia, "Times New Roman", serif; }
 .input-surface textarea::placeholder { color: rgba(232, 238, 229, .4); }
+.reference-area { display: grid; gap: 20px; min-height: 245px; padding: 7px 1px; }
+.reference-area label { display: grid; gap: 8px; color: #bdcfb3; font-size: .82rem; }
+.reference-area label span { color: rgba(232, 238, 229, .47); }
+.reference-area textarea { min-height: 118px; resize: vertical; color: #eef3e9; background: transparent; border: 0; border-bottom: 1px solid rgba(232, 238, 229, .27); outline: 0; font: 1.08rem/1.55 Georgia, "Times New Roman", serif; }
+.reference-area input { width: 100%; padding: 9px 0; color: #eef3e9; background: transparent; border: 0; border-bottom: 1px solid rgba(232, 238, 229, .27); outline: 0; font: .98rem/1.4 Georgia, "Times New Roman", serif; }
+.reference-area textarea:focus, .reference-area input:focus { border-color: #d8e3cc; }
+.reference-area textarea::placeholder, .reference-area input::placeholder { color: rgba(232, 238, 229, .4); }
+.reference-area p { margin: 0; color: rgba(232, 238, 229, .53); font-size: .77rem; line-height: 1.45; }
 .upload-area, .voice-area { display: grid; min-height: 225px; place-items: center; align-content: center; gap: 15px; text-align: center; }
 .upload-area input { display: none; }
 .photo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
@@ -179,3 +188,84 @@ body:has(.make-page) {
   .input-options { grid-template-columns: 1fr; }
   .drawing-area canvas { height: 210px; }
 }
+
+/* Werkblad: de interface blijft bewust stil; de bijdrage van de bezoeker draagt de kleur. */
+.make-page {
+  min-height: 100dvh;
+  padding: max(20px, env(safe-area-inset-top)) 18px 36px;
+  color: #2e2b26;
+  font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+  background: #f7f4ec;
+}
+
+.make-page * { font-family: inherit; }
+.make-header { min-height: 42px; margin-bottom: clamp(35px, 7vh, 64px); border-bottom: 1px solid #d8d1c5; }
+.back-link { color: #6b655b; font-size: 16px; text-decoration: none; }
+.back-link:hover, .back-link:focus-visible { color: #2e2b26; text-decoration: underline; }
+.make-mark { display: none; }
+.make-card { width: min(100%, 680px); }
+.make-intro { max-width: 560px; padding-top: clamp(30px, 7vh, 70px); }
+.eyebrow { margin: 0 0 12px; color: #6b655b; font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.make-card h1 { max-width: 620px; margin: 0; color: #2e2b26; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-size: clamp(24px, 5.5vw, 28px); font-weight: 400; line-height: 1.25; letter-spacing: 0; }
+.lead { max-width: 550px; margin: 17px 0 27px; color: #6b655b; font-size: 17px; line-height: 1.5; }
+
+.primary-button, .secondary-button, .quiet-button, .clear-button, .record-button { border-radius: 3px; font-size: 16px; }
+.primary-button { min-height: 44px; padding: 10px 16px; color: #f7f4ec; background: #2e2b26; border: 1px solid #2e2b26; font-weight: 400; }
+.primary-button:hover { color: #2e2b26; background: #f7f4ec; }
+.secondary-button { padding: 9px 13px; color: #2e2b26; background: transparent; border: 1px solid #bcb4a7; }
+.secondary-button:hover { background: #ebe6dc; }
+.quiet-button { padding: 10px 0; color: #6b655b; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; }
+.step-actions { margin-top: 27px; }
+
+.input-options { gap: 9px; margin: 23px 0; }
+.input-option { gap: 11px; padding: 14px; color: #2e2b26; background: transparent; border: 1px solid #cfc7ba; border-radius: 3px; }
+.input-option.is-selected, .input-option:hover { background: #ebe6dc; border-color: #6b655b; }
+.input-symbol { color: #6b655b; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-size: 18px; }
+.input-option strong { font-size: 16px; font-weight: 400; }
+.input-option small { margin-top: 4px; color: #6b655b; font-size: 14px; line-height: 1.35; }
+.input-state { color: #6b655b; font-size: 12px; }
+.input-option.is-selected .input-state { color: #2e2b26; }
+.empty-input-message { color: #6b655b; background: transparent; border: 1px dashed #cfc7ba; border-radius: 3px; }
+
+.input-surfaces { gap: 10px; }
+.input-surface { min-height: 250px; padding: 16px; background: #fffdf8; border: 1px solid #d8d1c5; border-radius: 3px; }
+.surface-label { margin: 0 0 10px; color: #6b655b; font-size: 14px; }
+.input-surface textarea { min-height: 190px; color: #2e2b26; font: 17px/1.55 "Atkinson Hyperlegible", Arial, sans-serif; }
+.input-surface textarea::placeholder, .reference-area textarea::placeholder, .reference-area input::placeholder { color: #918a80; }
+.reference-area { min-height: 215px; gap: 17px; }
+.reference-area label { color: #6b655b; font-size: 14px; }
+.reference-area textarea, .reference-area input { color: #2e2b26; border-bottom-color: #bcb4a7; font-family: "Atkinson Hyperlegible", Arial, sans-serif; }
+.reference-area p { color: #6b655b; font-size: 14px; }
+.upload-area, .voice-area { min-height: 195px; }
+.upload-spark, .private-spark, .completion-spark, .make-mark { background: #6b655b; box-shadow: none; }
+.drawing-area canvas { background: #fffdf8; }
+.clear-button { color: #2e2b26; background: #f7f4ec; border: 1px solid #bcb4a7; }
+.voice-area p, .upload-area small, .voice-area small { color: #6b655b; }
+.record-button { color: #2e2b26; background: transparent; border: 1px solid #bcb4a7; }
+.record-button.is-recording { color: #2e2b26; background: #ebe6dc; border-color: #6b655b; }
+
+.choice-list { gap: 9px; margin-top: 22px; }
+.choice-list button { gap: 4px; padding: 15px 16px; color: #2e2b26; background: transparent; border: 1px solid #cfc7ba; border-radius: 3px; }
+.choice-list button:hover, .choice-list button.is-selected { background: #ebe6dc; border-color: #6b655b; }
+.choice-list strong { font-size: 16px; font-weight: 400; }
+.choice-list span { color: #6b655b; font-size: 14px; line-height: 1.42; }
+.test-note { color: #6b655b; font-size: 14px; }
+.private-space { min-height: 135px; padding: 20px; color: #6b655b; background: #fffdf8; border: 1px solid #d8d1c5; border-radius: 3px; }
+.feedback-question { margin: 22px 0 9px; color: #2e2b26; font-size: 16px; }
+.feedback-choices { gap: 8px; }
+.feedback-choices button { padding: 8px 11px; color: #2e2b26; background: transparent; border: 1px solid #cfc7ba; border-radius: 3px; }
+.feedback-choices button.is-selected { color: #2e2b26; background: #ebe6dc; border-color: #6b655b; }
+.feedback-field { color: #2e2b26; border-bottom-color: #bcb4a7; font: 16px/1.55 "Atkinson Hyperlegible", Arial, sans-serif; }
+.feedback-field:focus, .reference-area textarea:focus, .reference-area input:focus { border-color: #2e2b26; }
+.title-field { color: #2e2b26; font-size: 16px; }
+.title-field span { color: #6b655b; }
+.title-field input { color: #2e2b26; border-bottom-color: #bcb4a7; font: 17px "Atkinson Hyperlegible", Arial, sans-serif; }
+.title-field input:focus { border-color: #2e2b26; }
+.consent-field { color: #6b655b; font-size: 14px; }
+.consent-field input { accent-color: #2e2b26; }
+.primary-button:disabled { color: #918a80; background: #ded8ce; border-color: #ded8ce; }
+
+.completion { padding-top: clamp(30px, 7vh, 68px); }
+.completion-spark { margin-bottom: 25px; }
+.completion-summary { gap: 7px; margin: 22px 0 27px; }
+.completion-summary span { color: #6b655b; background: #ebe6dc; border-radius: 3px; font-size: 14px; }
