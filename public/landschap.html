@@ -1313,7 +1313,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;section class=&quot;stekjes-landschap&quot; aria-label=&quot;Landschap met plekken waar rouwdieren bewegen&quot;&gt;
     &lt;canvas class=&quot;rouw-lens-canvas&quot; aria-hidden=&quot;true&quot;&gt;&lt;/canvas&gt;
     &lt;svg class=&quot;rouw-lens-fallback&quot; aria-hidden=&quot;true&quot; preserveAspectRatio=&quot;xMidYMid slice&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
-      &lt;defs&gt;&lt;filter id=&quot;rouw-lens-filter&quot; x=&quot;-5%&quot; y=&quot;-5%&quot; width=&quot;110%&quot; height=&quot;110%&quot;&gt;&lt;feTurbulence type=&quot;fractalNoise&quot; baseFrequency=&quot;.012 .018&quot; numOctaves=&quot;2&quot; seed=&quot;8&quot; result=&quot;noise&quot;/&gt;&lt;feDisplacementMap in=&quot;SourceGraphic&quot; in2=&quot;noise&quot; scale=&quot;7&quot; xChannelSelector=&quot;R&quot; yChannelSelector=&quot;G&quot;/&gt;&lt;/filter&gt;&lt;/defs&gt;
+      &lt;defs&gt;&lt;filter id=&quot;rouw-lens-filter&quot; x=&quot;-2%&quot; y=&quot;-2%&quot; width=&quot;104%&quot; height=&quot;104%&quot;&gt;&lt;feTurbulence type=&quot;fractalNoise&quot; baseFrequency=&quot;.004 .006&quot; numOctaves=&quot;2&quot; seed=&quot;8&quot; result=&quot;noise&quot;/&gt;&lt;feDisplacementMap in=&quot;SourceGraphic&quot; in2=&quot;noise&quot; scale=&quot;1.5&quot; xChannelSelector=&quot;R&quot; yChannelSelector=&quot;G&quot;/&gt;&lt;/filter&gt;&lt;/defs&gt;
       &lt;image class=&quot;rouw-lens-fallback-image&quot; width=&quot;100%&quot; height=&quot;100%&quot; preserveAspectRatio=&quot;xMidYMid slice&quot; filter=&quot;url(#rouw-lens-filter)&quot;/&gt;
     &lt;/svg&gt;
     &lt;div class=&quot;openingszin&quot; id=&quot;openingszin&quot;&gt;Klik op een plek waar het landschap beweegt om een rouwdier te openen.&lt;/div&gt;
@@ -1347,7 +1347,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       &lt;span class=&quot;stekjes-soort&quot;&gt;Foto + herinnering&lt;/span&gt;
       &lt;h2 id=&quot;stekjes-titel&quot;&gt;De stekjes van oma&lt;/h2&gt;
       &lt;p&gt;“Ik kreeg deze stekjes van mijn overleden oma.”&lt;/p&gt;
-      &lt;p&gt;De foto blijft zoals hij is. In het landschap wordt de bijdrage alleen weergegeven als een klein bewegend vonkje.&lt;/p&gt;
+      &lt;p&gt;De foto blijft zoals hij is. In het landschap is de bijdrage een plek waar iets heel langzaam onder het beeld beweegt.&lt;/p&gt;
       &lt;p class=&quot;stekjes-meta&quot;&gt;Alleen voor deze test gebruikt · geen AI-transformatie van de foto&lt;/p&gt;
     &lt;/div&gt;
   &lt;/section&gt;
@@ -1389,11 +1389,11 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       const testImageSource = extractBackgroundUrl(testBackground);
       const lensProfiles = [
-        { radius: .145, strength: .036, phase: .2 },
-        { radius: .115, strength: -.029, phase: 1.5 },
-        { radius: .14, strength: .041, phase: 3.1 },
-        { radius: .12, strength: -.033, phase: 4.4 },
-        { radius: .13, strength: .037, phase: 5.7 }
+        { radius: .078, strength: .010, travelX: .21, travelY: .13, phase: .2 },
+        { radius: .064, strength: .008, travelX: .17, travelY: .19, phase: 1.5 },
+        { radius: .074, strength: .011, travelX: .24, travelY: .11, phase: 3.1 },
+        { radius: .067, strength: .009, travelX: .16, travelY: .17, phase: 4.4 },
+        { radius: .071, strength: .010, travelX: .19, travelY: .14, phase: 5.7 }
       ];
 
       const createLensRenderer = () =&gt; {
@@ -1423,19 +1423,21 @@ html&gt;body{padding:0}&lt;/style&gt;
               vec2 delta = uv - point.xy;
               delta.x *= aspect;
               float distance = length(delta);
-              float influence = 1. - smoothstep(point.z * .28, point.z, distance);
-              float breath = .93 + sin(uTime * .00034 + uPhases[i]) * .10;
-              float hover = abs(float(i) - uHover) &lt; .1 ? 1.34 : 1.;
-              vec2 direction = normalize(vec2(delta.x / aspect, delta.y) + vec2(.00001));
-              uv += direction * point.w * influence * influence * breath * hover;
+              float influence = 1. - smoothstep(point.z * .42, point.z, distance);
+              float drift = sin(uTime * .00042 + uPhases[i] * 2.) * .24;
+              float breath = .92 + sin(uTime * .00019 + uPhases[i]) * .08;
+              float hover = abs(float(i) - uHover) &lt; .1 ? 1.65 : 1.;
+              vec2 current = vec2(cos(drift + uPhases[i]), sin(drift * .82 + uPhases[i] * 1.6));
+              current.x /= aspect;
+              uv += current * point.w * influence * influence * breath * hover;
             }
             float screenAspect = uResolution.x / uResolution.y;
             float imageAspect = uImageSize.x / uImageSize.y;
             vec2 imageUv = uv;
             if (screenAspect &gt; imageAspect) {
-              imageUv.y = (uv.y - .5) * screenAspect / imageAspect + .5;
+              imageUv.y = (uv.y - .5) * imageAspect / screenAspect + .5;
             } else {
-              imageUv.x = (uv.x - .5) * imageAspect / screenAspect + .5;
+              imageUv.x = (uv.x - .5) * screenAspect / imageAspect + .5;
             }
             vec3 color = texture2D(uImage, clamp(imageUv, .001, .999)).rgb;
             float shade = mix(.78, 1., smoothstep(0., .48, vUv.y));
@@ -1476,6 +1478,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         let hasRouwdieren = true;
         let hovering = -1;
         let animationFrame = 0;
+        let basePositions = null;
         const prefersReducedMotion = window.matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches;
         const resize = () =&gt; {
           const rect = landscapeScene.getBoundingClientRect();
@@ -1483,22 +1486,37 @@ html&gt;body{padding:0}&lt;/style&gt;
           lensCanvas.width = Math.max(1, Math.round(rect.width * scale));
           lensCanvas.height = Math.max(1, Math.round(rect.height * scale));
         };
-        const points = () =&gt; {
+        const captureBasePositions = () =&gt; {
           const sceneRect = landscapeScene.getBoundingClientRect();
-          return sparks.flatMap((spark, index) =&gt; {
-            if (!hasRouwdieren || spark.hidden) return [0, 0, 0, 0];
+          basePositions = sparks.map((spark) =&gt; {
             const rect = spark.getBoundingClientRect();
             return [
               (rect.left - sceneRect.left + rect.width / 2) / sceneRect.width,
-              1 - (rect.top - sceneRect.top + rect.height / 2) / sceneRect.height,
-              lensProfiles[index].radius,
-              lensProfiles[index].strength
+              1 - (rect.top - sceneRect.top + rect.height / 2) / sceneRect.height
             ];
+          });
+        };
+        const positionAt = (index, time) =&gt; {
+          const profile = lensProfiles[index];
+          const base = basePositions[index];
+          const slow = time * .000052 + profile.phase;
+          const x = base[0] + Math.sin(slow * 1.08) * profile.travelX + Math.sin(slow * .39 + profile.phase) * .045;
+          const y = base[1] + Math.cos(slow * .86) * profile.travelY + Math.sin(slow * .47 + profile.phase) * .035;
+          return [Math.min(.92, Math.max(.08, x)), Math.min(.91, Math.max(.09, y))];
+        };
+        const points = (time) =&gt; {
+          if (!basePositions) captureBasePositions();
+          return sparks.flatMap((spark, index) =&gt; {
+            if (!hasRouwdieren || spark.hidden) return [0, 0, 0, 0];
+            const point = positionAt(index, time);
+            spark.style.left = `${point[0] * 100}%`;
+            spark.style.top = `${(1 - point[1]) * 100}%`;
+            return [point[0], point[1], lensProfiles[index].radius, lensProfiles[index].strength];
           });
         };
         const draw = (time = 0) =&gt; {
           if (!hasTexture) return;
-          const packedPoints = points();
+          const packedPoints = points(time);
           gl.viewport(0, 0, lensCanvas.width, lensCanvas.height);
           gl.uniform2f(gl.getUniformLocation(program, &#x27;uResolution&#x27;), lensCanvas.width, lensCanvas.height);
           gl.uniform2f(gl.getUniformLocation(program, &#x27;uImageSize&#x27;), imageSize[0], imageSize[1]);
