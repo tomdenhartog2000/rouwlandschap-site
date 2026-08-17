@@ -18,7 +18,7 @@ const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string
 
 export default function MaakEenRouwdier() {
   const [step, setStep] = useState(0);
-  const [modes, setModes] = useState<InputMode[]>(["write"]);
+  const [modes, setModes] = useState<InputMode[]>([]);
   const [words, setWords] = useState("");
   const [reference, setReference] = useState("");
   const [referenceLink, setReferenceLink] = useState("");
