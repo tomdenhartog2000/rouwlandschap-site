@@ -171,6 +171,10 @@ body:has(.make-page) {
 .title-field input { width: 100%; padding: 13px 0; color: #e8eee5; background: transparent; border: 0; border-bottom: 1px solid rgba(232, 238, 229, .32); border-radius: 0; outline: 0; font: 1.2rem Georgia, serif; }
 .title-field input:focus { border-color: #d8e3cc; }
 .sharing-list { margin-top: 24px; }
+.sharing-option { display: grid; gap: 7px; }
+.sharing-details { color: rgba(232, 238, 229, .64); font-size: .83rem; line-height: 1.45; }
+.sharing-details summary { width: max-content; color: inherit; cursor: pointer; }
+.sharing-details p { max-width: 510px; margin: 8px 0 0; }
 .consent-field { display: flex; align-items: flex-start; gap: 10px; margin-top: 18px; color: rgba(232, 238, 229, .72); font-size: .84rem; line-height: 1.45; }
 .consent-field input { width: 17px; height: 17px; margin: 1px 0 0; accent-color: #d8e3cc; }
 .primary-button:disabled { color: rgba(22, 32, 24, .48); background: rgba(216, 227, 204, .38); cursor: not-allowed; }
@@ -270,6 +274,8 @@ body:has(.make-page) {
 .title-field input:focus { border-color: #2e2b26; }
 .consent-field { color: #6b655b; font-size: 14px; }
 .consent-field input { accent-color: #2e2b26; }
+.sharing-details { color: #6b655b; font-size: 14px; }
+.sharing-details summary:hover, .sharing-details summary:focus-visible { color: #2e2b26; }
 .primary-button:disabled { color: #918a80; background: #ded8ce; border-color: #ded8ce; }
 
 .completion { padding-top: clamp(30px, 7vh, 68px); }

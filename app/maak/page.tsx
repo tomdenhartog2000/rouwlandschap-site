@@ -6,7 +6,7 @@ type InputMode = "write" | "photo" | "draw" | "voice" | "reference";
 type AiPath = "none" | "add" | "make";
 type AiAction = "image" | "sound" | "motion" | null;
 type BackgroundStyle = "natural" | "abstract" | "quiet" | null;
-type SharingChoice = "take" | "online" | "both";
+type SharingChoice = "take" | "online" | "here" | "future";
 
 const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string }> = [
   { id: "write", title: "Schrijven", text: "Een herinnering, zin, woord of iets dat nog geen vorm heeft.", symbol: "Aa" },
@@ -194,8 +194,12 @@ export default function MaakEenRouwdier() {
           <label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label>
           <div className="choice-list sharing-list">
             <button className={sharing === "take" ? "is-selected" : ""} onClick={() => chooseSharing("take")}><strong>Ik neem het weer mee</strong><span>Er verschijnt niets in het landschap.</span></button>
-            <button className={sharing === "online" ? "is-selected" : ""} onClick={() => chooseSharing("online")}><strong>Het mag anoniem in het landschap leven</strong><span>De vonk opent jouw bijdrage voor bezoekers.</span></button>
-            <button className={sharing === "both" ? "is-selected" : ""} onClick={() => chooseSharing("both")}><strong>Het mag ook worden overwogen voor de fysieke tentoonstelling</strong><span>Naast de online mogelijkheid; dit is geen garantie dat het getoond wordt.</span></button>
+            <button className={sharing === "online" ? "is-selected" : ""} onClick={() => chooseSharing("online")}><strong>Het mag anoniem in het online landschap leven</strong><span>De vonk opent jouw bijdrage voor bezoekers.</span></button>
+            <button className={sharing === "here" ? "is-selected" : ""} onClick={() => chooseSharing("here")}><strong>Het mag bij deze opstelling leven</strong><span>Ook anoniem in het online landschap, voor bezoekers die hier zijn.</span></button>
+            <div className="sharing-option">
+              <button className={sharing === "future" ? "is-selected" : ""} onClick={() => chooseSharing("future")}><strong>Het mag ook op andere plekken leven</strong><span>Ook anoniem, naast deze opstelling. Dit is geen garantie dat het getoond wordt.</span></button>
+              <details className="sharing-details"><summary>meer hierover</summary><p>De bijdrage kan terechtkomen op plekken die nu nog niet bekend zijn. Tussen rouwdieren van mensen die je niet kent. Welke plekken dat zijn, is niet vooraf te zeggen.</p></details>
+            </div>
           </div>
           {sharing !== "take" && <label className="consent-field"><input type="checkbox" checked={isPubliclyConfirmed} onChange={(event) => setIsPubliclyConfirmed(event.target.checked)} /><span>Ik begrijp dat bezoekers mijn bijdrage kunnen openen wanneer zij op de vonk klikken.</span></label>}
           <p className="test-note">Dit is een testsituatie: er wordt nu niets bewaard, doorgestuurd of tentoongesteld.</p>
@@ -205,7 +209,7 @@ export default function MaakEenRouwdier() {
         {step === 5 && <div className="make-intro completion">
           <span className="completion-spark" aria-hidden="true" /><p className="eyebrow">dank je</p><h1>{title ? `${title} heeft even ruimte gekregen.` : "Je vorm heeft even ruimte gekregen."}</h1>
           <p className="lead">In deze test blijft alles alleen op dit toestel. Er is niets opgeslagen of toegevoegd aan het landschap.</p>
-          <div className="completion-summary"><span>{inputSummary || "geen eigen invoer"}</span><span>{aiSummary}</span><span>{sharing === "take" ? "weer meenemen" : sharing === "online" ? "online laten leven" : "online + mogelijk fysiek"}</span></div>
+          <div className="completion-summary"><span>{inputSummary || "geen eigen invoer"}</span><span>{aiSummary}</span><span>{sharing === "take" ? "weer meenemen" : sharing === "online" ? "online laten leven" : sharing === "here" ? "bij deze opstelling" : "ook andere plekken"}</span></div>
           <a className="primary-button link-button" href="/">terug naar het landschap</a>
         </div>}
       </section>
