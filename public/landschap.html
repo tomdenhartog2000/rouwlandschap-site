@@ -1474,6 +1474,10 @@ html&gt;body{padding:0}&lt;/style&gt;
       });
 
       root.querySelector(&#x27;[data-open-maakruimte=&quot;true&quot;]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+        if (window.top === window) {
+          window.location.assign(&#x27;/maak&#x27;);
+          return;
+        }
         window.top.postMessage({ type: &#x27;rouwdier:open-make&#x27; }, &#x27;*&#x27;);
       });
 
