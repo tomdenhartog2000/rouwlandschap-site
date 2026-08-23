@@ -148,7 +148,7 @@ export default function MaakEenRouwdier() {
 
   return (
     <main className="make-page">
-      <header className="make-header"><a href="/" className="back-link">← terug naar het landschap</a></header>
+      <header className="make-header"><a href="/landschap" className="back-link">← terug naar het landschap</a></header>
       <section className="make-card" aria-live="polite">
         {step === 0 && <div className="make-intro">
           <p className="eyebrow">een mogelijke vorm</p><h1>Geef een rouwdier ruimte.</h1>
@@ -210,7 +210,7 @@ export default function MaakEenRouwdier() {
           <span className="completion-spark" aria-hidden="true" /><p className="eyebrow">dank je</p><h1>{title ? `${title} heeft even ruimte gekregen.` : "Je vorm heeft even ruimte gekregen."}</h1>
           <p className="lead">In deze test blijft alles alleen op dit toestel. Er is niets opgeslagen of toegevoegd aan het landschap.</p>
           <div className="completion-summary"><span>{inputSummary || "geen eigen invoer"}</span><span>{aiSummary}</span><span>{sharing === "take" ? "weer meenemen" : sharing === "online" ? "online laten leven" : sharing === "here" ? "bij deze opstelling" : "ook andere plekken"}</span></div>
-          <a className="primary-button link-button" href="/">terug naar het landschap</a>
+          <a className="primary-button link-button" href="/landschap">terug naar het landschap</a>
         </div>}
       </section>
     </main>

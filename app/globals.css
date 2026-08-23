@@ -17,7 +17,9 @@ body,
 }
 
 html:has(.make-page),
-body:has(.make-page) {
+body:has(.make-page),
+html:has(.entry-page),
+body:has(.entry-page) {
   height: auto;
   min-height: 100%;
   overflow-x: hidden;
@@ -203,6 +205,21 @@ body:has(.make-page) {
 }
 
 .make-page * { font-family: inherit; }
+.entry-page {
+  display: grid;
+  min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(36px, env(safe-area-inset-bottom));
+  place-items: center;
+  color: #2e2b26;
+  font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+  background: #f7f4ec;
+}
+.entry-card { display: grid; width: min(100%, 460px); gap: 16px; }
+.entry-card h1 { margin: 0; font-size: clamp(24px, 5.5vw, 28px); font-weight: 400; line-height: 1.25; }
+.entry-card p { max-width: 330px; margin: 0 0 7px; color: #6b655b; font-size: 17px; line-height: 1.5; }
+.entry-card .primary-button { width: max-content; margin-top: 4px; text-decoration: none; }
+.entry-landscape-link { width: max-content; color: #6b655b; font-size: 16px; text-decoration: none; }
+.entry-landscape-link:hover, .entry-landscape-link:focus-visible { color: #2e2b26; text-decoration: underline; text-underline-offset: 3px; }
 .make-header { min-height: 42px; margin-bottom: clamp(35px, 7vh, 64px); border-bottom: 1px solid #d8d1c5; }
 .back-link { color: #6b655b; font-size: 16px; text-decoration: none; }
 .back-link:hover, .back-link:focus-visible { color: #2e2b26; text-decoration: underline; }
