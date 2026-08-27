@@ -299,3 +299,87 @@ body:has(.entry-page) {
 .completion-spark { margin-bottom: 25px; }
 .completion-summary { gap: 7px; margin: 22px 0 27px; }
 .completion-summary span { color: #6b655b; background: #ebe6dc; border-radius: 3px; font-size: 14px; }
+
+.skip-note,
+.option-explainer,
+.feedback-followup,
+.completion-note {
+  margin: 10px 0 0;
+  color: #6b655b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.care-field { min-height: 165px; }
+.ai-form-area { margin-top: 28px; }
+.card-editor { display: grid; gap: 24px; margin-top: 24px; }
+.card-fields { display: grid; gap: 20px; }
+.title-field textarea {
+  width: 100%;
+  min-height: 128px;
+  padding: 12px 0;
+  color: #2e2b26;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #bcb4a7;
+  outline: 0;
+  font: 17px/1.55 "Atkinson Hyperlegible", Arial, sans-serif;
+  resize: vertical;
+}
+.title-field textarea:focus { border-color: #2e2b26; }
+
+.rouwdier-card {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 520px);
+  margin-top: 24px;
+  padding: 22px;
+  color: #2e2b26;
+  background: #fffdf8;
+  border: 1px solid #d8d1c5;
+  border-radius: 3px;
+}
+.card-editor .rouwdier-card { margin-top: 0; }
+.rouwdier-card.is-compact { margin-bottom: 22px; }
+.card-kicker {
+  margin: 0;
+  color: #6b655b;
+  font-size: 13px;
+  letter-spacing: .04em;
+  text-transform: lowercase;
+}
+.rouwdier-card h2 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+.card-image { display: block; width: 100%; max-height: 380px; object-fit: cover; background: #ebe6dc; }
+.card-drawing { object-fit: contain; }
+.card-words,
+.card-description { margin: 0; color: #2e2b26; font-size: 16px; line-height: 1.55; white-space: pre-wrap; }
+.card-words { padding: 8px 0; font-size: 18px; }
+.card-reference { margin: 0; color: #6b655b; font-size: 14px; }
+.audio-cover {
+  display: grid;
+  min-height: 180px;
+  padding: 22px;
+  align-content: space-between;
+  color: #2e2b26;
+  background: #ebe6dc;
+}
+.audio-cover span { font-size: 15px; }
+.audio-cover i {
+  display: block;
+  height: 46px;
+  background: repeating-linear-gradient(90deg, #6b655b 0 3px, transparent 3px 14px);
+  clip-path: polygon(0 46%, 8% 20%, 16% 70%, 24% 12%, 32% 58%, 40% 34%, 48% 76%, 56% 25%, 64% 62%, 72% 10%, 80% 72%, 88% 30%, 100% 55%, 100% 65%, 88% 40%, 80% 82%, 72% 20%, 64% 72%, 56% 35%, 48% 86%, 40% 44%, 32% 68%, 24% 22%, 16% 80%, 8% 30%, 0 56%);
+}
+.card-audio { width: 100%; }
+.completion-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 23px 0 0; }
+.completion .quiet-button { display: inline-block; margin-top: 22px; }
+
+@media (min-width: 680px) {
+  .card-editor { grid-template-columns: minmax(0, 1fr) minmax(240px, .85fr); align-items: start; }
+  .rouwdier-card.is-compact { max-width: 430px; }
+}
