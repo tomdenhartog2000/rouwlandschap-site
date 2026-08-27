@@ -133,6 +133,111 @@ export default function MaakEenRouwdier() {
     }
     setStep(6);
   };
+  const wrapCanvasText = (context: CanvasRenderingContext2D, text: string, maxWidth: number) => {
+    const lines: string[] = [];
+    text.split("\n").forEach((paragraph) => {
+      const wordsInParagraph = paragraph.trim().split(/\s+/).filter(Boolean);
+      if (!wordsInParagraph.length) { lines.push(""); return; }
+      let line = "";
+      wordsInParagraph.forEach((word) => {
+        const nextLine = line ? `${line} ${word}` : word;
+        if (line && context.measureText(nextLine).width > maxWidth) { lines.push(line); line = word; }
+        else line = nextLine;
+      });
+      if (line) lines.push(line);
+    });
+    return lines;
+  };
+  const downloadCard = async () => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const width = 1200;
+    const height = 1600;
+    const padding = 90;
+    const contentWidth = width - padding * 2;
+    canvas.width = width;
+    canvas.height = height;
+    context.fillStyle = "#f7f4ec";
+    context.fillRect(0, 0, width, height);
+    context.fillStyle = "#fffdf8";
+    context.fillRect(42, 42, width - 84, height - 84);
+    context.strokeStyle = "#d8d1c5";
+    context.lineWidth = 2;
+    context.strokeRect(42, 42, width - 84, height - 84);
+    context.fillStyle = "#6b655b";
+    context.font = "28px Arial, sans-serif";
+    context.fillText("rouwdier", padding, 130);
+    context.fillStyle = "#2e2b26";
+    context.font = "56px Arial, sans-serif";
+    const titleLines = wrapCanvasText(context, visibleTitle, contentWidth);
+    titleLines.slice(0, 3).forEach((line, index) => context.fillText(line, padding, 212 + index * 66));
+    const titleHeight = Math.max(1, Math.min(titleLines.length, 3)) * 66;
+    const mediaSource = photos[0]?.dataUrl || drawingDataUrl;
+    const mediaTop = 260 + titleHeight;
+    const mediaHeight = 610;
+    if (mediaSource) {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const item = new Image();
+        item.onload = () => resolve(item);
+        item.onerror = () => reject(new Error("Afbeelding kon niet worden geladen."));
+        item.src = mediaSource;
+      }).catch(() => null);
+      if (image) {
+        const scale = Math.min(contentWidth / image.width, mediaHeight / image.height);
+        const imageWidth = image.width * scale;
+        const imageHeight = image.height * scale;
+        const imageX = padding + (contentWidth - imageWidth) / 2;
+        const imageY = mediaTop + (mediaHeight - imageHeight) / 2;
+        context.fillStyle = "#ebe6dc";
+        context.fillRect(padding, mediaTop, contentWidth, mediaHeight);
+        context.drawImage(image, imageX, imageY, imageWidth, imageHeight);
+      }
+    } else if (audioUrl) {
+      context.fillStyle = "#ebe6dc";
+      context.fillRect(padding, mediaTop, contentWidth, 340);
+      context.fillStyle = "#2e2b26";
+      context.font = "34px Arial, sans-serif";
+      context.fillText("geluidsopname", padding + 38, mediaTop + 76);
+      context.strokeStyle = "#6b655b";
+      context.lineWidth = 6;
+      for (let index = 0; index < 27; index += 1) {
+        const x = padding + 38 + index * 38;
+        const waveHeight = 26 + ((index * 31) % 130);
+        context.beginPath();
+        context.moveTo(x, mediaTop + 230 - waveHeight / 2);
+        context.lineTo(x, mediaTop + 230 + waveHeight / 2);
+        context.stroke();
+      }
+    } else if (words) {
+      context.fillStyle = "#ebe6dc";
+      context.fillRect(padding, mediaTop, contentWidth, 340);
+      context.fillStyle = "#2e2b26";
+      context.font = "38px Arial, sans-serif";
+      wrapCanvasText(context, words, contentWidth - 76).slice(0, 7).forEach((line, index) => context.fillText(line, padding + 38, mediaTop + 80 + index * 48));
+    }
+    const descriptionTop = mediaSource ? mediaTop + mediaHeight + 72 : mediaTop + 415;
+    const description = visibleDescription || (!mediaSource && !audioUrl ? words : "");
+    if (description) {
+      context.fillStyle = "#2e2b26";
+      context.font = "34px Arial, sans-serif";
+      wrapCanvasText(context, description, contentWidth).slice(0, 8).forEach((line, index) => context.fillText(line, padding, descriptionTop + index * 46));
+    }
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) return;
+    const safeTitle = visibleTitle.toLocaleLowerCase("nl-NL").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "rouwdier";
+    const file = new File([blob], `${safeTitle}.png`, { type: "image/png" });
+    if (window.matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: visibleTitle }); return; }
+      catch (error) { if (error instanceof DOMException && error.name === "AbortError") return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const renderInput = (mode: InputMode) => {
     const label = inputs.find((input) => input.id === mode)?.title;
@@ -161,6 +266,6 @@ export default function MaakEenRouwdier() {
 
     {step === 5 && <div><p className="eyebrow">5 van 5 · waar mag het leven?</p><h1>Waar mag deze bijdrage leven?</h1><p className="lead">Je bijdrage blijft anoniem. Je kunt hem straks ook zelf bewaren en downloaden.</p><CardPreview compact /><div className="choice-list sharing-list"><button type="button" className={sharing === "take" ? "is-selected" : ""} onClick={() => { setSharing("take"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); }}><strong>Ik neem het weer mee</strong><span>Er verschijnt niets in het landschap.</span></button><button type="button" className={sharing === "online" ? "is-selected" : ""} onClick={() => { setSharing("online"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); }}><strong>Het mag in het online landschap leven</strong><span>Bezoekers kunnen jouw bijdrage daar openen.</span></button><button type="button" className={sharing === "here" ? "is-selected" : ""} onClick={() => { setSharing("here"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); }}><strong>Het mag bij deze opstelling leven</strong><span>Naast het online landschap kan het hier bij deze opstelling worden getoond. Niet alle rouwdieren krijgen hier een plek.</span></button><button type="button" className={sharing === "future" ? "is-selected" : ""} onClick={() => { setSharing("future"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); }}><strong>Het mag ook op andere plekken leven</strong><span>Ook niet alle rouwdieren worden elders getoond. Welke andere plekken dat zijn, is vooraf niet bekend.</span></button></div>{sharing !== "take" && <div className="consent-area"><label className="consent-field"><input type="checkbox" checked={isPubliclyConfirmed} onChange={(event) => setIsPubliclyConfirmed(event.target.checked)} /><span>Ik begrijp wat deze keuze inhoudt.</span></label><button type="button" className="consent-details-button" onClick={() => setShowConsentDetails(true)}>Lees de toelichting</button></div>}<p className="test-note">In deze test verschijnt een bijdrage alleen op dit toestel in het landschap.</p><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(4)}>terug</button><button type="button" className="primary-button" disabled={sharing !== "take" && !isPubliclyConfirmed} onClick={finishContribution}>rond af</button></div>{showConsentDetails && <div className="consent-modal" role="dialog" aria-modal="true" aria-labelledby="consent-title"><section><button type="button" aria-label="Sluit toelichting" onClick={() => setShowConsentDetails(false)}>×</button><p>{consentDetails.title}</p><h2 id="consent-title">Wat houdt deze keuze in?</h2><div>{consentDetails.text}</div></section></div>}</div>}
 
-    {step === 6 && <div className="make-intro completion"><p className="eyebrow">je rouwdier</p><h1>Je kunt je rouwdier nu zelf bewaren.</h1><p className="lead">De download bevat het samengestelde kaartje met wat je zelf hebt gemaakt, toegevoegd of aangewezen.</p><CardPreview compact /><div className="completion-actions"><button type="button" className="primary-button" onClick={() => window.print()}>bewaar als kaartje</button>{audioUrl && <a className="secondary-button" href={audioUrl} download="geluidsopname.webm">bewaar geluidsopname</a>}</div><p className="completion-note">{sharing === "take" ? "Er is niets aan het landschap of een opstelling toegevoegd." : "Je hebt aangegeven waar deze bijdrage eventueel mag leven."}</p><a className="quiet-button" href="/verken">terug naar het landschap</a></div>}
+    {step === 6 && <div className="make-intro completion"><p className="eyebrow">je rouwdier</p><h1>Je kunt je rouwdier nu zelf bewaren.</h1><p className="lead">De download bevat het samengestelde kaartje met wat je zelf hebt gemaakt, toegevoegd of aangewezen.</p><CardPreview compact /><div className="completion-actions"><button type="button" className="primary-button" onClick={downloadCard}>bewaar als afbeelding</button>{audioUrl && <a className="secondary-button" href={audioUrl} download="geluidsopname.webm">bewaar geluidsopname</a>}</div><p className="completion-note">{sharing === "take" ? "Er is niets aan het landschap of een opstelling toegevoegd." : "Je hebt aangegeven waar deze bijdrage eventueel mag leven."}</p><a className="quiet-button" href="/verken">terug naar het landschap</a></div>}
   </section></main>;
 }
