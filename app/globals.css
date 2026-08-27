@@ -76,8 +76,8 @@ body:has(.entry-page) {
 .created-rouwdiers-spark {
   position: absolute;
   z-index: 4;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   background: transparent;
   border: 0;
@@ -96,7 +96,7 @@ body:has(.entry-page) {
   height: var(--spark-size);
   border-radius: 50%;
   background: var(--spark-color);
-  box-shadow: 0 0 8px 2px var(--spark-glow);
+  box-shadow: 0 0 5px var(--spark-glow), 0 0 10px rgb(255 215 130 / 24%);
   animation: created-spark-drift var(--spark-duration) ease-in-out var(--spark-delay) infinite;
 }
 .created-rouwdiers-spark:hover span,

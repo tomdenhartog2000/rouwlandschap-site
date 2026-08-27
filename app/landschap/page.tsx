@@ -42,6 +42,13 @@ const sparkShapes: SparkParticle[][] = [
     { x: 34, y: 35, size: 4, driftX: -7, driftY: -3, delay: -4, duration: 5.8, color: "#f4dda2", glow: "rgba(244, 221, 162, .55)" },
   ],
 ];
+const sparkPalettes = [
+  { color: "#fff6d5", glow: "rgba(255, 246, 213, .58)" },
+  { color: "#ffe1e7", glow: "rgba(255, 225, 231, .56)" },
+  { color: "#e2e8f4", glow: "rgba(226, 232, 244, .56)" },
+  { color: "#ffedcc", glow: "rgba(255, 237, 204, .56)" },
+  { color: "#f5e1ed", glow: "rgba(245, 225, 237, .56)" },
+];
 
 export default function Landschap() {
   const landscapeRef = useRef<HTMLElement>(null);
@@ -112,8 +119,9 @@ export default function Landschap() {
       <iframe className="landscape-frame" src="/landschap.html" title="Interactief Testlandschap" allow="fullscreen" />
       {contributions.map((contribution, index) => {
         const position = contributionPositions[contribution.id] ?? contribution;
-        const particles = sparkShapes[index % sparkShapes.length];
-        return <button key={contribution.id} type="button" className="created-rouwdiers-spark" style={{ left: `${position.x}%`, top: `${position.y}%`, transitionDuration: `${18 + index * 3}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${particle.x}px`, "--spark-y": `${particle.y}px`, "--spark-size": `${particle.size}px`, "--spark-drift-x": `${particle.driftX}px`, "--spark-drift-y": `${particle.driftY}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": particle.color, "--spark-glow": particle.glow } as CSSProperties} />)}</button>;
+        const particles = sparkShapes[index % sparkShapes.length].slice(0, 1 + index % 3);
+        const palette = sparkPalettes[index % sparkPalettes.length];
+        return <button key={contribution.id} type="button" className="created-rouwdiers-spark" style={{ left: `${position.x}%`, top: `${position.y}%`, transitionDuration: `${18 + index * 3}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
       })}
       <button type="button" className="fullscreen-button" aria-label={isFullscreen ? "Sluit schermvullende weergave" : "Open schermvullende weergave"} onClick={toggleFullscreen}>
         <span className="fullscreen-icon" aria-hidden="true" />
