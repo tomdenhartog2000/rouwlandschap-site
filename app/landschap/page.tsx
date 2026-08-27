@@ -10,6 +10,7 @@ export default function Landschap() {
   const landscapeRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [contributions, setContributions] = useState<TestContribution[]>([]);
+  const [contributionPositions, setContributionPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
 
   useEffect(() => {
@@ -29,10 +30,22 @@ export default function Landschap() {
     try {
       const saved = JSON.parse(window.localStorage.getItem("rouwdieren-testbijdragen") || "[]") as TestContribution[];
       setContributions(saved);
+      setContributionPositions(Object.fromEntries(saved.map((contribution) => [contribution.id, { x: contribution.x, y: contribution.y }])));
     } catch {
       setContributions([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (!contributions.length) return;
+    const moveContributions = () => setContributionPositions((current) => Object.fromEntries(contributions.map((contribution) => [contribution.id, {
+      x: 8 + Math.random() * 84,
+      y: 10 + Math.random() * 78,
+    }])));
+    const firstMovement = window.setTimeout(moveContributions, 900);
+    const movement = window.setInterval(moveContributions, 22000);
+    return () => { window.clearTimeout(firstMovement); window.clearInterval(movement); };
+  }, [contributions]);
 
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
@@ -60,7 +73,10 @@ export default function Landschap() {
   return (
     <main className="landscape-shell" ref={landscapeRef}>
       <iframe className="landscape-frame" src="/landschap.html" title="Interactief Testlandschap" allow="fullscreen" />
-      {contributions.map((contribution, index) => <button key={contribution.id} type="button" className={`created-rouwdiers-spark spark-variant-${index % 3}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}><span /><span /><span /></button>)}
+      {contributions.map((contribution, index) => {
+        const position = contributionPositions[contribution.id] ?? contribution;
+        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark spark-variant-${index % 3}`} style={{ left: `${position.x}%`, top: `${position.y}%`, transitionDuration: `${18 + index * 3}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}><span /><span /><span /></button>;
+      })}
       <button type="button" className="fullscreen-button" aria-label={isFullscreen ? "Sluit schermvullende weergave" : "Open schermvullende weergave"} onClick={toggleFullscreen}>
         <span className="fullscreen-icon" aria-hidden="true" />
       </button>
