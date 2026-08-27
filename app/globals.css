@@ -73,6 +73,62 @@ body:has(.entry-page) {
     linear-gradient(currentColor, currentColor) right bottom / 1.5px 6px no-repeat;
 }
 
+.created-rouwdiers-spark {
+  position: absolute;
+  z-index: 4;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+.created-rouwdiers-spark span {
+  position: absolute;
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f4dda2;
+  box-shadow: 0 0 8px 2px rgba(244, 221, 162, .66);
+  animation: created-spark-drift 7s ease-in-out infinite;
+}
+.created-rouwdiers-spark span:nth-child(1) { top: 10px; left: 10px; }
+.created-rouwdiers-spark span:nth-child(2) { top: 5px; left: 20px; width: 4px; height: 4px; animation-delay: -2s; }
+.created-rouwdiers-spark span:nth-child(3) { top: 20px; left: 5px; width: 3px; height: 3px; animation-delay: -4s; }
+.created-rouwdiers-spark.spark-variant-1 span { background: #efc7c4; box-shadow: 0 0 8px 2px rgba(239, 199, 196, .65); }
+.created-rouwdiers-spark.spark-variant-2 span { background: #cbd8e4; box-shadow: 0 0 8px 2px rgba(203, 216, 228, .65); }
+.created-rouwdiers-spark:hover span,
+.created-rouwdiers-spark:focus-visible span { transform: scale(1.25); }
+@keyframes created-spark-drift { 0%, 100% { translate: 0 0; opacity: .8; } 50% { translate: 3px -5px; opacity: 1; } }
+
+.created-contribution-modal {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgba(13, 18, 16, .55);
+}
+.created-contribution-card {
+  position: relative;
+  width: min(100%, 480px);
+  max-height: min(720px, 90dvh);
+  padding: 25px;
+  overflow: auto;
+  color: #2e2b26;
+  background: #fffdf8;
+  border: 1px solid #d8d1c5;
+  border-radius: 3px;
+}
+.created-contribution-card > p { margin: 0 0 10px; color: #6b655b; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
+.created-contribution-card h1 { margin: 0 35px 19px 0; font: 400 25px/1.25 "Atkinson Hyperlegible", Arial, sans-serif; }
+.created-contribution-card img { display: block; width: 100%; max-height: 390px; margin: 0 0 18px; object-fit: contain; background: #ebe6dc; }
+.created-contribution-card div { white-space: pre-wrap; font: 16px/1.55 "Atkinson Hyperlegible", Arial, sans-serif; }
+.created-contribution-close { position: absolute; top: 12px; right: 13px; width: 32px; height: 32px; padding: 0; color: #2e2b26; background: transparent; border: 0; cursor: pointer; font-size: 24px; line-height: 1; }
+
 .make-page {
   min-height: 100dvh;
   padding: max(22px, env(safe-area-inset-top)) 18px 36px;
@@ -291,6 +347,54 @@ body:has(.entry-page) {
 .title-field input:focus { border-color: #2e2b26; }
 .consent-field { color: #6b655b; font-size: 14px; }
 .consent-field input { accent-color: #2e2b26; }
+.consent-area { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 14px; margin-top: 18px; }
+.consent-area .consent-field { margin: 0; }
+.consent-details-button {
+  padding: 0;
+  color: #6b655b;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: 14px "Atkinson Hyperlegible", Arial, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.consent-details-button:hover, .consent-details-button:focus-visible { color: #2e2b26; }
+.consent-modal {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgb(46 43 38 / 36%);
+}
+.consent-modal section {
+  position: relative;
+  width: min(100%, 480px);
+  padding: 24px;
+  color: #2e2b26;
+  background: #fffdf8;
+  border: 1px solid #d8d1c5;
+  border-radius: 3px;
+}
+.consent-modal section > button {
+  position: absolute;
+  top: 8px;
+  right: 11px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #6b655b;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: 28px/1 "Atkinson Hyperlegible", Arial, sans-serif;
+}
+.consent-modal section > button:hover, .consent-modal section > button:focus-visible { color: #2e2b26; }
+.consent-modal p { margin: 0 0 10px; color: #6b655b; font-size: 14px; }
+.consent-modal h2 { margin: 0 34px 15px 0; color: #2e2b26; font-size: 22px; font-weight: 400; line-height: 1.3; }
+.consent-modal section > div { color: #2e2b26; font-size: 16px; line-height: 1.55; }
 .sharing-details { color: #6b655b; font-size: 14px; }
 .sharing-details summary:hover, .sharing-details summary:focus-visible { color: #2e2b26; }
 .primary-button:disabled { color: #918a80; background: #ded8ce; border-color: #ded8ce; }
