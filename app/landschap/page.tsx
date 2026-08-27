@@ -1,10 +1,47 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 type FullscreenDocument = Document & { webkitExitFullscreen?: () => Promise<void>; webkitFullscreenElement?: Element; };
 type FullscreenElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void>; };
 type TestContribution = { id: string; title: string; description: string; kind: string; image: string; x: number; y: number; };
+type SparkParticle = { x: number; y: number; size: number; driftX: number; driftY: number; delay: number; duration: number; color: string; glow: string; };
+
+const sparkShapes: SparkParticle[][] = [
+  [
+    { x: 16, y: 20, size: 7, driftX: 5, driftY: -7, delay: -1, duration: 6.6, color: "#f4dda2", glow: "rgba(244, 221, 162, .72)" },
+    { x: 28, y: 9, size: 4, driftX: -5, driftY: 6, delay: -3, duration: 5.2, color: "#f4dda2", glow: "rgba(244, 221, 162, .55)" },
+    { x: 34, y: 25, size: 5, driftX: 6, driftY: 3, delay: -2, duration: 7.3, color: "#efc7c4", glow: "rgba(239, 199, 196, .62)" },
+    { x: 8, y: 34, size: 3, driftX: 4, driftY: -4, delay: -4, duration: 4.8, color: "#cbd8e4", glow: "rgba(203, 216, 228, .58)" },
+  ],
+  [
+    { x: 11, y: 13, size: 4, driftX: 6, driftY: 5, delay: -2, duration: 5.8, color: "#efc7c4", glow: "rgba(239, 199, 196, .58)" },
+    { x: 24, y: 21, size: 8, driftX: -7, driftY: 4, delay: -4, duration: 7.1, color: "#f4dda2", glow: "rgba(244, 221, 162, .72)" },
+    { x: 39, y: 12, size: 3, driftX: 3, driftY: 7, delay: -1, duration: 4.9, color: "#d4cae4", glow: "rgba(212, 202, 228, .55)" },
+    { x: 35, y: 34, size: 5, driftX: -6, driftY: -5, delay: -3, duration: 6.2, color: "#cbd8e4", glow: "rgba(203, 216, 228, .6)" },
+    { x: 14, y: 37, size: 3, driftX: 5, driftY: -2, delay: -5, duration: 5.1, color: "#f4dda2", glow: "rgba(244, 221, 162, .5)" },
+  ],
+  [
+    { x: 20, y: 6, size: 3, driftX: -4, driftY: 7, delay: -1, duration: 4.7, color: "#cbd8e4", glow: "rgba(203, 216, 228, .55)" },
+    { x: 31, y: 15, size: 5, driftX: 6, driftY: 5, delay: -4, duration: 6.3, color: "#efc7c4", glow: "rgba(239, 199, 196, .58)" },
+    { x: 16, y: 23, size: 7, driftX: 5, driftY: -7, delay: -2, duration: 7.5, color: "#f4dda2", glow: "rgba(244, 221, 162, .72)" },
+    { x: 39, y: 31, size: 4, driftX: -6, driftY: -3, delay: -5, duration: 5.4, color: "#d4cae4", glow: "rgba(212, 202, 228, .55)" },
+    { x: 8, y: 36, size: 4, driftX: 7, driftY: -4, delay: -3, duration: 6.7, color: "#efc7c4", glow: "rgba(239, 199, 196, .58)" },
+  ],
+  [
+    { x: 7, y: 24, size: 3, driftX: 5, driftY: -6, delay: -2, duration: 5.7, color: "#f4dda2", glow: "rgba(244, 221, 162, .5)" },
+    { x: 21, y: 10, size: 5, driftX: 7, driftY: 4, delay: -5, duration: 6.9, color: "#cbd8e4", glow: "rgba(203, 216, 228, .62)" },
+    { x: 29, y: 29, size: 8, driftX: -6, driftY: -6, delay: -1, duration: 7.4, color: "#efc7c4", glow: "rgba(239, 199, 196, .72)" },
+    { x: 42, y: 18, size: 4, driftX: -5, driftY: 5, delay: -4, duration: 5.3, color: "#f4dda2", glow: "rgba(244, 221, 162, .55)" },
+  ],
+  [
+    { x: 11, y: 8, size: 4, driftX: 7, driftY: 4, delay: -3, duration: 5.2, color: "#d4cae4", glow: "rgba(212, 202, 228, .58)" },
+    { x: 25, y: 17, size: 6, driftX: -6, driftY: 6, delay: -1, duration: 6.8, color: "#f4dda2", glow: "rgba(244, 221, 162, .7)" },
+    { x: 40, y: 8, size: 3, driftX: -5, driftY: 7, delay: -5, duration: 4.9, color: "#efc7c4", glow: "rgba(239, 199, 196, .55)" },
+    { x: 8, y: 34, size: 5, driftX: 6, driftY: -5, delay: -2, duration: 6.1, color: "#cbd8e4", glow: "rgba(203, 216, 228, .62)" },
+    { x: 34, y: 35, size: 4, driftX: -7, driftY: -3, delay: -4, duration: 5.8, color: "#f4dda2", glow: "rgba(244, 221, 162, .55)" },
+  ],
+];
 
 export default function Landschap() {
   const landscapeRef = useRef<HTMLElement>(null);
@@ -75,7 +112,8 @@ export default function Landschap() {
       <iframe className="landscape-frame" src="/landschap.html" title="Interactief Testlandschap" allow="fullscreen" />
       {contributions.map((contribution, index) => {
         const position = contributionPositions[contribution.id] ?? contribution;
-        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark spark-variant-${index % 3}`} style={{ left: `${position.x}%`, top: `${position.y}%`, transitionDuration: `${18 + index * 3}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}><span /><span /><span /></button>;
+        const particles = sparkShapes[index % sparkShapes.length];
+        return <button key={contribution.id} type="button" className="created-rouwdiers-spark" style={{ left: `${position.x}%`, top: `${position.y}%`, transitionDuration: `${18 + index * 3}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${particle.x}px`, "--spark-y": `${particle.y}px`, "--spark-size": `${particle.size}px`, "--spark-drift-x": `${particle.driftX}px`, "--spark-drift-y": `${particle.driftY}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": particle.color, "--spark-glow": particle.glow } as CSSProperties} />)}</button>;
       })}
       <button type="button" className="fullscreen-button" aria-label={isFullscreen ? "Sluit schermvullende weergave" : "Open schermvullende weergave"} onClick={toggleFullscreen}>
         <span className="fullscreen-icon" aria-hidden="true" />
