@@ -397,6 +397,9 @@ body:has(.entry-page) {
 .title-field input:focus { border-color: #2e2b26; }
 .consent-field { color: #6b655b; font-size: 14px; }
 .consent-field input { accent-color: #2e2b26; }
+.transcript-choice { display: grid; grid-template-columns: 17px minmax(0, 1fr); column-gap: 10px; row-gap: 4px; }
+.transcript-choice input { grid-row: 1 / span 2; }
+.transcript-choice small { grid-column: 2; color: #6b655b; font-size: 13px; line-height: 1.4; }
 .consent-area { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 14px; margin-top: 18px; }
 .consent-area .consent-field { margin: 0; }
 .consent-details-button {
