@@ -32,16 +32,23 @@ export async function POST(request: Request) {
       context ? `Visitor context: ${context}` : "",
     ].filter(Boolean).join("\n");
 
-    const body = new FormData();
-    body.set("model", "gpt-image-1-mini");
-    body.set("prompt", prompt);
-    body.set("size", "1024x1024");
-    body.set("quality", "low");
-    body.set("output_format", "png");
-    if (sourceFile) body.set("image", sourceFile);
-
     const endpoint = sourceFile ? "https://api.openai.com/v1/images/edits" : "https://api.openai.com/v1/images/generations";
-    const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}` }, body });
+    const response = sourceFile
+      ? await (() => {
+        const body = new FormData();
+        body.set("model", "gpt-image-1-mini");
+        body.set("prompt", prompt);
+        body.set("size", "1024x1024");
+        body.set("quality", "low");
+        body.set("output_format", "png");
+        body.set("image", sourceFile);
+        return fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}` }, body });
+      })()
+      : await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-image-1-mini", prompt, size: "1024x1024", quality: "low", output_format: "png" }),
+      });
     const result = await response.json() as { data?: Array<{ b64_json?: string }>; error?: { message?: string } };
     const image = result.data?.[0]?.b64_json;
     if (!response.ok || !image) return Response.json({ error: result.error?.message || "Het beeldvoorstel kon niet worden gemaakt." }, { status: response.status || 502 });
