@@ -1,21 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import type { LandscapeContribution } from "@/lib/contributions";
 
 type FullscreenDocument = Document & { webkitExitFullscreen?: () => Promise<void>; webkitFullscreenElement?: Element; };
 type FullscreenElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void>; };
-type TestContribution = {
-  id: string;
-  title: string;
-  description: string;
-  kind: string;
-  image: string;
-  images?: string[];
-  drawing?: string;
-  audio?: string;
-  text?: string;
-  reference?: string;
-  referenceLink?: string;
+type TestContribution = LandscapeContribution & {
+  image?: string;
   x: number;
   y: number;
 };
@@ -64,6 +55,11 @@ const sparkPalettes = [
   { color: "#f5e1ed", glow: "rgba(245, 225, 237, .56)" },
 ];
 
+function placementFor(id: string, offset = 0) {
+  const seed = [...id].reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 17 + offset);
+  return { x: 14 + (seed % 70), y: 18 + ((seed >>> 8) % 60) };
+}
+
 export default function Landschap() {
   const landscapeRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -84,12 +80,23 @@ export default function Landschap() {
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem("rouwdieren-testbijdragen") || "[]") as TestContribution[];
-      setContributions(saved);
-    } catch {
-      setContributions([]);
-    }
+    let active = true;
+    const load = async () => {
+      let local: TestContribution[] = [];
+      try { local = JSON.parse(window.localStorage.getItem("rouwdieren-testbijdragen") || "[]") as TestContribution[]; } catch { local = []; }
+      try {
+        const response = await fetch("/api/contributions", { cache: "no-store" });
+        if (!response.ok) throw new Error("Nog niet beschikbaar");
+        const data = await response.json() as { contributions: LandscapeContribution[] };
+        const remote = data.contributions.map((contribution, index) => ({ ...contribution, ...placementFor(contribution.id, index) }));
+        if (active) setContributions([...remote, ...local.filter((item) => !remote.some((shared) => shared.id === item.id))]);
+      } catch {
+        if (active) setContributions(local);
+      }
+    };
+    void load();
+    const interval = window.setInterval(load, 15_000);
+    return () => { active = false; window.clearInterval(interval); };
   }, []);
 
   useEffect(() => {

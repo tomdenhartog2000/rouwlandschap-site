@@ -464,6 +464,71 @@ body:has(.entry-page) {
   line-height: 1.5;
 }
 
+.save-error {
+  margin: 16px 0 0;
+  color: #8a2f25;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.admin-page {
+  min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top)) 18px 42px;
+  color: #2e2b26;
+  background: #f7f4ec;
+}
+.admin-login,
+.admin-shell {
+  width: min(100%, 860px);
+  margin: 0 auto;
+}
+.admin-login {
+  display: grid;
+  gap: 16px;
+  max-width: 460px;
+  padding-top: min(18vh, 120px);
+}
+.admin-login h1,
+.admin-shell h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+.admin-login p,
+.admin-shell header p { margin: 0; color: #6b655b; font-size: 16px; line-height: 1.5; }
+.admin-login form { display: grid; gap: 16px; margin-top: 8px; }
+.admin-login label { display: grid; gap: 8px; color: #2e2b26; font-size: 16px; }
+.admin-login input {
+  min-height: 44px;
+  padding: 8px 10px;
+  color: #2e2b26;
+  background: #fffdf8;
+  border: 1px solid #bcb4a7;
+  border-radius: 3px;
+  font: inherit;
+}
+.admin-login .primary-button { width: max-content; }
+.admin-message { margin: 0; color: #8a2f25; font-size: 14px; }
+.admin-shell { padding-top: 22px; }
+.admin-shell > header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; padding-bottom: 24px; border-bottom: 1px solid #d8d1c5; }
+.admin-shell > header > div { display: grid; gap: 8px; }
+.admin-list { display: grid; gap: 14px; margin-top: 24px; }
+.admin-empty { margin: 0; color: #6b655b; }
+.admin-item { display: grid; gap: 14px; padding: 18px; background: #fffdf8; border: 1px solid #d8d1c5; border-radius: 3px; }
+.admin-item.is-hidden { opacity: .62; }
+.admin-item-head { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 14px; }
+.admin-item-head p { margin: 0 0 5px; color: #6b655b; font-size: 14px; }
+.admin-item h2 { margin: 0; font-size: 20px; font-weight: 400; }
+.admin-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.admin-delete { color: #8a2f25; }
+.admin-item img { width: min(100%, 460px); max-height: 420px; object-fit: contain; background: #ebe6dc; }
+.admin-item audio { width: min(100%, 460px); }
+.admin-text,
+.admin-reference { max-width: 640px; margin: 0; color: #2e2b26; white-space: pre-wrap; line-height: 1.55; }
+.admin-reference { color: #6b655b; }
+.admin-item a { width: max-content; color: #6b655b; }
+
 .care-field { min-height: 165px; }
 .ai-form-area { margin-top: 28px; }
 .card-editor { display: grid; gap: 24px; margin-top: 24px; }
