@@ -1,7 +1,7 @@
 export type StoredAttachment = {
   name: string;
   type: string;
-  role: "photo" | "drawing" | "audio";
+  role: "photo" | "drawing" | "audio" | "ai";
 };
 
 export type LandscapeContribution = {
@@ -26,7 +26,7 @@ export function readAttachments(value: string): StoredAttachment[] {
       item && typeof item === "object" &&
       typeof (item as StoredAttachment).name === "string" &&
       typeof (item as StoredAttachment).type === "string" &&
-      ["photo", "drawing", "audio"].includes((item as StoredAttachment).role),
+      ["photo", "drawing", "audio", "ai"].includes((item as StoredAttachment).role),
     ));
   } catch {
     return [];

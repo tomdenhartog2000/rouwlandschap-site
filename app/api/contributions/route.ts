@@ -33,7 +33,7 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
     title: row.title,
     description: row.description,
     kind: row.kind,
-    images: attachments.filter((item) => item.role === "photo").map((item) => mediaUrl(row.id, item.name)),
+    images: attachments.filter((item) => item.role === "photo" || item.role === "ai").map((item) => mediaUrl(row.id, item.name)),
     drawing: attachments.find((item) => item.role === "drawing") ? mediaUrl(row.id, attachments.find((item) => item.role === "drawing")!.name) : "",
     audio: attachments.find((item) => item.role === "audio") ? mediaUrl(row.id, attachments.find((item) => item.role === "audio")!.name) : "",
     text: row.textValue,
@@ -60,10 +60,12 @@ export async function POST(request: Request) {
     const photoFiles = data.getAll("photos").filter((item): item is File => item instanceof File).slice(0, MAX_IMAGES);
     const drawing = data.get("drawing");
     const audio = data.get("audio");
+    const aiImage = data.get("aiImage");
     const drawingFile = drawing instanceof File && drawing.size ? drawing : null;
     const audioFile = audio instanceof File && audio.size ? audio : null;
+    const aiImageFile = aiImage instanceof File && aiImage.size ? aiImage : null;
 
-    if (photoFiles.some((file) => !file.type.startsWith("image/") || file.size > MAX_IMAGE_BYTES) || (drawingFile && (!drawingFile.type.startsWith("image/") || drawingFile.size > MAX_IMAGE_BYTES))) {
+    if (photoFiles.some((file) => !file.type.startsWith("image/") || file.size > MAX_IMAGE_BYTES) || (drawingFile && (!drawingFile.type.startsWith("image/") || drawingFile.size > MAX_IMAGE_BYTES)) || (aiImageFile && (!aiImageFile.type.startsWith("image/") || aiImageFile.size > MAX_IMAGE_BYTES))) {
       return Response.json({ error: "Een afbeelding is te groot of heeft geen geldig afbeeldingsformaat." }, { status: 400 });
     }
     if (audioFile && (!audioFile.type.startsWith("audio/") || audioFile.size > MAX_AUDIO_BYTES)) {
@@ -75,6 +77,7 @@ export async function POST(request: Request) {
     const files: Array<{ file: File; role: StoredAttachment["role"]; name: string }> = [];
     photoFiles.forEach((file, index) => files.push({ file, role: "photo", name: `foto-${index + 1}.${fileExtension(file, "jpg")}` }));
     if (drawingFile) files.push({ file: drawingFile, role: "drawing", name: `tekening.${fileExtension(drawingFile, "png")}` });
+    if (aiImageFile) files.push({ file: aiImageFile, role: "ai", name: `ai-toevoeging.${fileExtension(aiImageFile, "png")}` });
     if (audioFile) files.push({ file: audioFile, role: "audio", name: `geluid.${fileExtension(audioFile, "webm")}` });
 
     for (const item of files) {

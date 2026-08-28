@@ -579,6 +579,9 @@ body:has(.entry-page) {
 .card-description { margin: 0; color: #2e2b26; font-size: 16px; line-height: 1.55; white-space: pre-wrap; }
 .card-words { padding: 8px 0; font-size: 18px; }
 .card-reference { margin: 0; color: #6b655b; font-size: 14px; }
+.card-ai-label { margin: 2px 0 -5px; color: #6b655b; font-size: 13px; }
+.ai-result { margin-top: 22px; padding: 10px; background: #fffdf8; border: 1px solid #d8d1c5; }
+.ai-result img { display: block; width: 100%; max-height: 540px; object-fit: contain; background: #ebe6dc; }
 .audio-cover {
   display: grid;
   min-height: 180px;

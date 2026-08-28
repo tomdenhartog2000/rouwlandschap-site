@@ -16,3 +16,12 @@ export const contributions = sqliteTable(
   },
   (table) => [index("idx_contributions_status_created_at").on(table.status, table.createdAt)],
 );
+
+export const aiGenerations = sqliteTable(
+  "ai_generations",
+  {
+    id: text("id").primaryKey(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("idx_ai_generations_created_at").on(table.createdAt)],
+);

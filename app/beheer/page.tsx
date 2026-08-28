@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Attachment = { name: string; type: string; role: "photo" | "drawing" | "audio"; url: string };
+type Attachment = { name: string; type: string; role: "photo" | "drawing" | "audio" | "ai"; url: string };
 type ManagedContribution = { id: string; title: string; description: string; kind: string; text: string; reference: string; referenceLink: string; status: "visible" | "hidden"; createdAt: number; attachments: Attachment[] };
 
 export default function Beheer() {
