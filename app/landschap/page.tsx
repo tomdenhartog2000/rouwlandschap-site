@@ -4,7 +4,21 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 type FullscreenDocument = Document & { webkitExitFullscreen?: () => Promise<void>; webkitFullscreenElement?: Element; };
 type FullscreenElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void>; };
-type TestContribution = { id: string; title: string; description: string; kind: string; image: string; x: number; y: number; };
+type TestContribution = {
+  id: string;
+  title: string;
+  description: string;
+  kind: string;
+  image: string;
+  images?: string[];
+  drawing?: string;
+  audio?: string;
+  text?: string;
+  reference?: string;
+  referenceLink?: string;
+  x: number;
+  y: number;
+};
 type SparkParticle = { x: number; y: number; size: number; driftX: number; driftY: number; delay: number; duration: number; color: string; glow: string; };
 
 const sparkShapes: SparkParticle[][] = [
@@ -54,7 +68,6 @@ export default function Landschap() {
   const landscapeRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [contributions, setContributions] = useState<TestContribution[]>([]);
-  const [contributionPositions, setContributionPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
 
   useEffect(() => {
@@ -74,22 +87,10 @@ export default function Landschap() {
     try {
       const saved = JSON.parse(window.localStorage.getItem("rouwdieren-testbijdragen") || "[]") as TestContribution[];
       setContributions(saved);
-      setContributionPositions(Object.fromEntries(saved.map((contribution) => [contribution.id, { x: contribution.x, y: contribution.y }])));
     } catch {
       setContributions([]);
     }
   }, []);
-
-  useEffect(() => {
-    if (!contributions.length) return;
-    const moveContributions = () => setContributionPositions((current) => Object.fromEntries(contributions.map((contribution) => [contribution.id, {
-      x: 8 + Math.random() * 84,
-      y: 10 + Math.random() * 78,
-    }])));
-    const firstMovement = window.setTimeout(moveContributions, 900);
-    const movement = window.setInterval(moveContributions, 22000);
-    return () => { window.clearTimeout(firstMovement); window.clearInterval(movement); };
-  }, [contributions]);
 
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
@@ -118,15 +119,14 @@ export default function Landschap() {
     <main className="landscape-shell" ref={landscapeRef}>
       <iframe className="landscape-frame" src="/landschap.html" title="Interactief Testlandschap" allow="fullscreen" />
       {contributions.map((contribution, index) => {
-        const position = contributionPositions[contribution.id] ?? contribution;
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 1 + index % 3);
         const palette = sparkPalettes[index % sparkPalettes.length];
-        return <button key={contribution.id} type="button" className="created-rouwdiers-spark" style={{ left: `${position.x}%`, top: `${position.y}%`, transitionDuration: `${18 + index * 3}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
+        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark created-spark-reis-${index % 5}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%`, animationDuration: `${68 + index * 5}s`, animationDelay: `-${index * 12}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
       })}
       <button type="button" className="fullscreen-button" aria-label={isFullscreen ? "Sluit schermvullende weergave" : "Open schermvullende weergave"} onClick={toggleFullscreen}>
         <span className="fullscreen-icon" aria-hidden="true" />
       </button>
-      {openContribution && <div className="created-contribution-modal" role="dialog" aria-modal="true" aria-label={openContribution.title} onClick={() => setOpenContribution(null)}><section className="created-contribution-card" onClick={(event) => event.stopPropagation()}><button type="button" className="created-contribution-close" onClick={() => setOpenContribution(null)} aria-label="Sluit rouwdier">×</button><p>{openContribution.kind}</p><h1>{openContribution.title}</h1>{openContribution.image && <img src={openContribution.image} alt="Bijdrage van de bezoeker" />}{openContribution.description && <div>{openContribution.description}</div>}</section></div>}
+      {openContribution && <div className="created-contribution-modal" role="dialog" aria-modal="true" aria-label={openContribution.title} onClick={() => setOpenContribution(null)}><section className="created-contribution-card" onClick={(event) => event.stopPropagation()}><button type="button" className="created-contribution-close" onClick={() => setOpenContribution(null)} aria-label="Sluit rouwdier">×</button><p>{openContribution.kind}</p><h1>{openContribution.title}</h1>{(openContribution.images?.length ? openContribution.images : openContribution.image ? [openContribution.image] : []).map((image, imageIndex) => <img key={`${imageIndex}-${image.slice(0, 20)}`} src={image} alt="Bijdrage van de bezoeker" />)}{openContribution.drawing && !openContribution.images?.includes(openContribution.drawing) && <img src={openContribution.drawing} alt="Tekening van de bezoeker" />}{openContribution.audio && <audio className="created-contribution-audio" controls src={openContribution.audio}>Je browser kan deze opname niet afspelen.</audio>}{openContribution.text && openContribution.text !== openContribution.description && <div>{openContribution.text}</div>}{openContribution.description && <div>{openContribution.description}</div>}{openContribution.reference && <div className="created-contribution-reference">{openContribution.reference}</div>}{openContribution.referenceLink && <a className="created-contribution-link" href={openContribution.referenceLink} target="_blank" rel="noreferrer">open verwijzing</a>}</section></div>}
     </main>
   );
 }

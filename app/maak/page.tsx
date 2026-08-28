@@ -37,6 +37,7 @@ export default function MaakEenRouwdier() {
   const [referenceLink, setReferenceLink] = useState("");
   const [photos, setPhotos] = useState<Array<{ name: string; url: string; dataUrl: string }>>([]);
   const [audioUrl, setAudioUrl] = useState("");
+  const [audioDataUrl, setAudioDataUrl] = useState("");
   const [drawingDataUrl, setDrawingDataUrl] = useState("");
   const [title, setTitle] = useState("");
   const [cardDescription, setCardDescription] = useState("");
@@ -109,7 +110,15 @@ export default function MaakEenRouwdier() {
       const recorder = new MediaRecorder(stream);
       audioChunks.current = [];
       recorder.ondataavailable = (event) => audioChunks.current.push(event.data);
-      recorder.onstop = () => { setAudioUrl(URL.createObjectURL(new Blob(audioChunks.current, { type: recorder.mimeType || "audio/webm" }))); stream.getTracks().forEach((track) => track.stop()); setIsRecording(false); };
+      recorder.onstop = () => {
+        const recording = new Blob(audioChunks.current, { type: recorder.mimeType || "audio/webm" });
+        setAudioUrl(URL.createObjectURL(recording));
+        const reader = new FileReader();
+        reader.onload = () => setAudioDataUrl(String(reader.result));
+        reader.readAsDataURL(recording);
+        stream.getTracks().forEach((track) => track.stop());
+        setIsRecording(false);
+      };
       recorderRef.current = recorder;
       recorder.start();
       setIsRecording(true);
@@ -126,6 +135,12 @@ export default function MaakEenRouwdier() {
         description: visibleDescription || words || careReflection,
         kind: modes.includes("voice") ? "Geluidsopname" : modes.includes("draw") ? "Tekening" : modes.includes("photo") ? "Foto" : modes.includes("reference") ? "Verwijzing" : "Tekst",
         image: photos[0]?.dataUrl || drawingDataUrl || "",
+        images: photos.map((photo) => photo.dataUrl),
+        drawing: drawingDataUrl,
+        audio: audioDataUrl,
+        text: words,
+        reference,
+        referenceLink,
         x: 28 + ((existing.length * 17 + 11) % 46),
         y: 25 + ((existing.length * 13 + 7) % 48),
       };
