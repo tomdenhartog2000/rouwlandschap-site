@@ -372,7 +372,7 @@ body:has(.entry-page) {
 .reference-area p { color: #6b655b; font-size: 14px; }
 .upload-area, .voice-area { min-height: 195px; }
 .upload-spark, .private-spark, .completion-spark, .make-mark { background: #6b655b; box-shadow: none; }
-.drawing-area canvas { background: #fffdf8; }
+.drawing-area canvas { width: 100%; height: auto; aspect-ratio: 1; background: #fffdf8; }
 .clear-button { color: #2e2b26; background: #f7f4ec; border: 1px solid #bcb4a7; }
 .voice-area p, .upload-area small, .voice-area small { color: #6b655b; }
 .record-button { color: #2e2b26; background: transparent; border: 1px solid #bcb4a7; }
