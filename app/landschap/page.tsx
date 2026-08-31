@@ -147,7 +147,7 @@ export default function Landschap() {
 
   return (
     <main className="landscape-shell" ref={landscapeRef}>
-      <iframe className="landscape-frame" src="/landschap.html" title={`Interactief ${landscape.name}`} allow="fullscreen" />
+      <iframe className="landscape-frame" src="/landschap.html?v=landschappen-beheer" title={`Interactief ${landscape.name}`} allow="fullscreen" />
       {contributions.map((contribution, index) => {
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 2 + index % 2);
         const palette = sparkPalettes[index % sparkPalettes.length];
