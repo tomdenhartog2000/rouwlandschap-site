@@ -19,6 +19,8 @@ export async function POST(request: Request) {
     await database.prepare("INSERT INTO ai_generations (id, created_at) VALUES (?, ?)").bind(crypto.randomUUID(), Date.now()).run();
     const incoming = await request.formData();
     const direction = typeof incoming.get("direction") === "string" ? String(incoming.get("direction")).trim().slice(0, 1_200) : "";
+    const baseDirection = typeof incoming.get("baseDirection") === "string" ? String(incoming.get("baseDirection")).trim().slice(0, 1_200) : "";
+    const isRevision = incoming.get("revision") === "true";
     const context = typeof incoming.get("context") === "string" ? String(incoming.get("context")).trim().slice(0, 2_000) : "";
     const source = incoming.get("source");
     const sourceFile = source instanceof File && source.size ? source : null;
@@ -26,9 +28,10 @@ export async function POST(request: Request) {
 
     const prompt = [
       "Create one quiet visual addition for a participatory art project about living with loss.",
-      sourceFile ? "Keep the visitor's original image or drawing recognisable and present. Add around or alongside it rather than replacing it." : "Make a visual starting point from the visitor's words without illustrating them literally.",
+      isRevision && sourceFile ? "Treat the supplied image as an earlier proposal. Preserve its composition and every element that the visitor does not explicitly ask to change." : sourceFile ? "Keep the visitor's original image or drawing recognisable and present. Add around or alongside it rather than replacing it." : "Make a visual starting point from the visitor's words without illustrating them literally.",
       "Use restrained, natural colours and a simple composition. Do not add text, letters, names, faces, people, religious symbols, memorial symbols, flames, sparkles, dramatic light, logos, or watermarks.",
-      direction ? `The visitor asks: ${direction}` : "Add a subtle abstract background or surrounding layer.",
+      baseDirection ? `The visitor's original request: ${baseDirection}` : "",
+      isRevision && direction ? `The visitor now wants this change: ${direction}` : direction ? `The visitor asks: ${direction}` : "Add a subtle abstract background or surrounding layer.",
       context ? `Visitor context: ${context}` : "",
     ].filter(Boolean).join("\n");
 
