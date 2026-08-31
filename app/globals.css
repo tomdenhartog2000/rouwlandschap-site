@@ -391,6 +391,26 @@ body:has(.admin-page) {
 .entry-card .primary-button { width: max-content; margin-top: 4px; text-decoration: none; }
 .entry-landscape-link { width: max-content; color: #6b655b; font-size: 16px; text-decoration: none; }
 .entry-landscape-link:hover, .entry-landscape-link:focus-visible { color: #2e2b26; text-decoration: underline; text-underline-offset: 3px; }
+.entry-participation { margin-top: 16px; font-size: 14px; line-height: 1.5; }
+.entry-ai-link { width: max-content; color: #6b655b; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.entry-ai-link:hover, .entry-ai-link:focus-visible { color: #2e2b26; }
+
+.information-page {
+  min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top)) 18px 44px;
+  color: #2e2b26;
+  background: #f7f4ec;
+  font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+}
+.information-card { width: min(100%, 680px); margin: 0 auto; padding-top: clamp(22px, 6vh, 60px); }
+.information-card > .back-link { display: inline-block; margin-bottom: 42px; }
+.information-card h1 { margin: 0; font-size: clamp(24px, 5.5vw, 28px); font-weight: 400; line-height: 1.25; }
+.information-lead { max-width: 570px; margin: 16px 0 34px; color: #6b655b; font-size: 17px; line-height: 1.5; }
+.information-card section { max-width: 620px; margin: 0 0 30px; padding-top: 22px; border-top: 1px solid #d8d1c5; }
+.information-card h2 { margin: 0 0 11px; font-size: 19px; font-weight: 400; line-height: 1.35; }
+.information-card section p, .information-source { margin: 0 0 12px; color: #6b655b; font-size: 16px; line-height: 1.55; }
+.information-source { margin-top: 30px; }
+.information-card a { color: inherit; text-underline-offset: 3px; }
 .make-header { min-height: 42px; margin-bottom: clamp(35px, 7vh, 64px); border-bottom: 1px solid #d8d1c5; }
 .back-link { color: #6b655b; font-size: 16px; text-decoration: none; }
 .back-link:hover, .back-link:focus-visible { color: #2e2b26; text-decoration: underline; }
