@@ -107,7 +107,7 @@ body:has(.entry-page) {
 }
 @keyframes created-spark-arrival {
   0% { scale: 1; filter: brightness(1); }
-  14%, 72% { scale: 1.55; filter: brightness(1.45); }
+  14%, 72% { scale: 2.35; filter: brightness(1.6); }
   100% { scale: 1; filter: brightness(1); }
 }
 @keyframes created-spark-drift {

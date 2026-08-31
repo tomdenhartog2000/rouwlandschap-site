@@ -135,7 +135,7 @@ export default function Landschap() {
     <main className="landscape-shell" ref={landscapeRef}>
       <iframe className="landscape-frame" src="/landschap.html" title="Interactief Testlandschap" allow="fullscreen" />
       {contributions.map((contribution, index) => {
-        const particles = sparkShapes[index % sparkShapes.length].slice(0, 1 + index % 3);
+        const particles = sparkShapes[index % sparkShapes.length].slice(0, 2 + index % 2);
         const palette = sparkPalettes[index % sparkPalettes.length];
         const isNew = contribution.id === newContributionId;
         return <button key={contribution.id} type="button" className={`created-rouwdiers-spark created-spark-reis-${index % 5}${isNew ? " is-new" : ""}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%`, animationDuration: `${68 + index * 5}s`, animationDelay: `-${index * 12}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`${isNew ? "Jouw nieuwe rouwdier: " : "Open "}${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
