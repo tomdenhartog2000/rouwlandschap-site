@@ -65,6 +65,15 @@ export default function Landschap() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [contributions, setContributions] = useState<TestContribution[]>([]);
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
+  const [newContributionId, setNewContributionId] = useState("");
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("nieuw");
+    if (!id) return;
+    setNewContributionId(id);
+    const timer = window.setTimeout(() => setNewContributionId(""), 5_000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const updateFullscreenState = () => {
@@ -128,7 +137,8 @@ export default function Landschap() {
       {contributions.map((contribution, index) => {
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 1 + index % 3);
         const palette = sparkPalettes[index % sparkPalettes.length];
-        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark created-spark-reis-${index % 5}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%`, animationDuration: `${68 + index * 5}s`, animationDelay: `-${index * 12}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`Open ${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
+        const isNew = contribution.id === newContributionId;
+        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark created-spark-reis-${index % 5}${isNew ? " is-new" : ""}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%`, animationDuration: `${68 + index * 5}s`, animationDelay: `-${index * 12}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`${isNew ? "Jouw nieuwe rouwdier: " : "Open "}${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
       })}
       <button type="button" className="fullscreen-button" aria-label={isFullscreen ? "Sluit schermvullende weergave" : "Open schermvullende weergave"} onClick={toggleFullscreen}>
         <span className="fullscreen-icon" aria-hidden="true" />

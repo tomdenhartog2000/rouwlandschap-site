@@ -100,6 +100,16 @@ body:has(.entry-page) {
 }
 .created-rouwdiers-spark:hover span,
 .created-rouwdiers-spark:focus-visible span { scale: 1.2; }
+.created-rouwdiers-spark.is-new span {
+  animation:
+    created-spark-drift var(--spark-duration) ease-in-out var(--spark-delay) infinite,
+    created-spark-arrival 5s cubic-bezier(.22, .8, .28, 1) both;
+}
+@keyframes created-spark-arrival {
+  0% { scale: 1; filter: brightness(1); }
+  14%, 72% { scale: 1.55; filter: brightness(1.45); }
+  100% { scale: 1; filter: brightness(1); }
+}
 @keyframes created-spark-drift {
   0%, 100% { translate: 0 0; opacity: .78; }
   45% { translate: var(--spark-drift-x) var(--spark-drift-y); opacity: 1; }
@@ -148,6 +158,7 @@ body:has(.entry-page) {
 @media (prefers-reduced-motion: reduce) {
   .created-rouwdiers-spark { animation: none; }
   .created-rouwdiers-spark span { animation: none; }
+  .created-rouwdiers-spark.is-new span { animation: none; }
 }
 
 .created-contribution-modal {
