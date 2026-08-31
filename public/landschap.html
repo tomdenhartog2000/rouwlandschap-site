@@ -1519,6 +1519,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           sparks.forEach((button) =&gt; { button.hidden = !selected.hasSpark; });
         }
       });
+      window.top.postMessage({ type: &#x27;rouwdier:landscape-ready&#x27; }, &#x27;*&#x27;);
     })();
   &lt;/script&gt;
 &lt;/div&gt;
@@ -1766,10 +1767,15 @@ html&gt;body{padding:0}&lt;/style&gt;
 &lt;/html&gt;
 "></iframe>
 <script>
+  let latestLandscapeConfig = null;
   window.addEventListener("message", (event) => {
     const frame = document.querySelector("iframe");
-    if (event.data?.type === "rouwdier:configure-landscapes") frame?.contentWindow?.postMessage(event.data, "*");
-    if (event.data?.type === "rouwdier:open-make" || event.data?.type === "rouwdier:select-landscape") window.parent.postMessage(event.data, "*");
+    if (event.data?.type === "rouwdier:configure-landscapes") {
+      latestLandscapeConfig = event.data;
+      frame?.contentWindow?.postMessage(event.data, "*");
+    }
+    if (event.data?.type === "rouwdier:landscape-ready" && latestLandscapeConfig) frame?.contentWindow?.postMessage(latestLandscapeConfig, "*");
+    if (event.data?.type === "rouwdier:open-make" || event.data?.type === "rouwdier:select-landscape" || event.data?.type === "rouwdier:landscape-ready") window.parent.postMessage(event.data, "*");
   });
 </script>
 </body>

@@ -65,19 +65,30 @@ export default function Landschap() {
   const [visitorLandscapes, setVisitorLandscapes] = useState<Array<{ id: string; name: string }>>([]);
   const landscapeRef = useRef<HTMLElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const initialLandscapeRef = useRef(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [contributions, setContributions] = useState<TestContribution[]>([]);
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
   const [newContributionId, setNewContributionId] = useState("");
 
   useEffect(() => {
-    void fetch("/api/landscapes", { cache: "no-store" }).then((response) => response.json()).then((data: { landscapes?: Array<{ id: string; name: string }>; active?: { id: string; name: string } }) => {
+    let mounted = true;
+    const loadLandscapeSettings = async () => {
+      const response = await fetch("/api/landscapes", { cache: "no-store" });
+      const data = await response.json() as { landscapes?: Array<{ id: string; name: string }>; active?: { id: string; name: string } };
       const available = data.landscapes || [];
       const requested = new URLSearchParams(window.location.search).get("landschap");
       const selected = available.find((item) => item.id === requested) || data.active;
+      if (!mounted) return;
       if (available.length) setVisitorLandscapes(available);
-      if (selected?.id && selected.name) setLandscape({ id: selected.id, name: selected.name });
-    }).catch(() => undefined);
+      if (initialLandscapeRef.current && selected?.id && selected.name) {
+        initialLandscapeRef.current = false;
+        setLandscape({ id: selected.id, name: selected.name });
+      }
+    };
+    void loadLandscapeSettings().catch(() => undefined);
+    const interval = window.setInterval(() => void loadLandscapeSettings().catch(() => undefined), 10_000);
+    return () => { mounted = false; window.clearInterval(interval); };
   }, []);
 
   const configureLandscapeMenu = () => {
@@ -130,6 +141,7 @@ export default function Landschap() {
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
       if (event.data?.type === "rouwdier:open-make") window.location.assign("/maak");
+      if (event.data?.type === "rouwdier:landscape-ready") configureLandscapeMenu();
       if (event.data?.type === "rouwdier:select-landscape") {
         const next = visitorLandscapes.find((item) => item.id === event.data.landscape);
         if (!next) return;
