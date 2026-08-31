@@ -2,19 +2,18 @@ export default function OverRouwdieren() {
   return (
     <main className="information-page">
       <article className="information-card project-information-card">
-        <p className="eyebrow">rouwdieren</p>
-        <h1>Een plek voor wat met verlies meeleeft</h1>
-        <p className="information-lead">Een rouwdier is een eigen en veranderlijke manier waarop iemand met een verlies leeft. Het kan een gewoonte zijn, een voorwerp, een plek, een gedeeld moment, of iets dat nog geen vorm heeft.</p>
+        <h1>rouwdieren</h1>
+        <p className="information-lead">Een plek voor wat mensen zelf gevonden hebben</p>
         <section>
-          <h2>Over dit project</h2>
-          <p>Rouwdieren nodigt mensen uit om iets achter te laten, zelf of samen met AI. Wat iemand maakt kan klein blijven, veranderen, of deel worden van een online landschap en een fysieke opstelling.</p>
-          <p>Elk rouwdier is anoniem. Sommige zijn zichtbaar in het landschap, andere blijven alleen bij degene die het maakte.</p>
+          <p>Wat je hier ziet is gemaakt in een expositie over rouw, door iemand die iemand verloor.</p>
+          <p>Bezoekers lopen daar langs wat anderen na een verlies voor zichzelf gevonden hebben: een gewoonte, een voorwerp, een plek, een gezegde, een moment dat blijft terugkomen. Niemand heeft die vormen aangereikt gekregen; ze waren er meestal al voordat er een naam voor was. Wij noemen ze rouwdieren.</p>
+          <p>Ze zijn niet allemaal zacht. Sommige vragen om aandacht, andere om afstand, en een enkele is lastig om bij in de buurt te zijn. Dat maakt ze niet minder.</p>
         </section>
         <section>
-          <h2>Dit kaartje</h2>
-          <p>Dit kaartje hoort bij één rouwdier. De inhoud is door een bezoeker gekozen of gemaakt. Soms is AI gebruikt om een beeld te vormen, soms niet.</p>
+          <p>Daarna kan wie dat wil er zelf een vormgeven. Met de hand, met woorden, met geluid of beeld, en met AI als iemand daarvoor kiest.</p>
+          <p>Dit kaartje hoort bij één rouwdier, in de vorm die de maker ervoor koos. Het is er één versie van, op één moment; het kan er morgen anders uitzien. Wie het achterlaat, laat het anoniem achter, in het online landschap of in de opstelling zelf. Wie het meeneemt, houdt het voor zichzelf.</p>
         </section>
-        <p className="information-source">Wil je weten hoe deelname, bewaren en AI in dit project werken? <a href="/over-ai">Lees over AI en je bijdrage</a>.</p>
+        <p className="information-source"><a href="/over-ai">Lees over AI en je bijdrage</a></p>
       </article>
     </main>
   );
