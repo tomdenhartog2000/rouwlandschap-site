@@ -62,13 +62,29 @@ function placementFor(id: string, offset = 0) {
 
 export default function Landschap() {
   const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
+  const [visitorLandscapes, setVisitorLandscapes] = useState<Array<{ id: string; name: string }>>([]);
   const landscapeRef = useRef<HTMLElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [contributions, setContributions] = useState<TestContribution[]>([]);
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
   const [newContributionId, setNewContributionId] = useState("");
 
-  useEffect(() => { void fetch("/api/landscapes/active", { cache: "no-store" }).then((response) => response.json()).then((data: { landscape?: { id?: string; name?: string } }) => { if (data.landscape?.id && data.landscape.name) setLandscape({ id: data.landscape.id, name: data.landscape.name }); }).catch(() => undefined); }, []);
+  useEffect(() => {
+    void fetch("/api/landscapes", { cache: "no-store" }).then((response) => response.json()).then((data: { landscapes?: Array<{ id: string; name: string }>; active?: { id: string; name: string } }) => {
+      const available = data.landscapes || [];
+      const requested = new URLSearchParams(window.location.search).get("landschap");
+      const selected = available.find((item) => item.id === requested) || data.active;
+      if (available.length) setVisitorLandscapes(available);
+      if (selected?.id && selected.name) setLandscape({ id: selected.id, name: selected.name });
+    }).catch(() => undefined);
+  }, []);
+
+  const configureLandscapeMenu = () => {
+    iframeRef.current?.contentWindow?.postMessage({ type: "rouwdier:configure-landscapes", landscapes: visitorLandscapes, selected: landscape.id }, "*");
+  };
+
+  useEffect(() => { configureLandscapeMenu(); }, [landscape.id, visitorLandscapes]);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("nieuw");
@@ -97,11 +113,11 @@ export default function Landschap() {
       let local: TestContribution[] = [];
       try { local = JSON.parse(window.localStorage.getItem("rouwdieren-testbijdragen") || "[]") as TestContribution[]; } catch { local = []; }
       try {
-        const response = await fetch("/api/contributions", { cache: "no-store" });
+        const response = await fetch(`/api/contributions?landschap=${encodeURIComponent(landscape.id)}`, { cache: "no-store" });
         if (!response.ok) throw new Error("Nog niet beschikbaar");
         const data = await response.json() as { contributions: LandscapeContribution[] };
         const remote = data.contributions.map((contribution, index) => ({ ...contribution, ...placementFor(contribution.id, index) }));
-        if (active) setContributions([...remote, ...local.filter((item) => !remote.some((shared) => shared.id === item.id))]);
+        if (active) setContributions([...remote, ...local.filter((item) => (item.landscape || "test") === landscape.id && !remote.some((shared) => shared.id === item.id))]);
       } catch {
         if (active) setContributions(local);
       }
@@ -114,10 +130,19 @@ export default function Landschap() {
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
       if (event.data?.type === "rouwdier:open-make") window.location.assign("/maak");
+      if (event.data?.type === "rouwdier:select-landscape") {
+        const next = visitorLandscapes.find((item) => item.id === event.data.landscape);
+        if (!next) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set("landschap", next.id);
+        url.searchParams.delete("nieuw");
+        window.history.replaceState({}, "", url);
+        setLandscape(next);
+      }
     };
     window.addEventListener("message", openMakeSpace);
     return () => window.removeEventListener("message", openMakeSpace);
-  }, []);
+  }, [visitorLandscapes]);
 
   useEffect(() => {
     let typed = "";
@@ -147,7 +172,7 @@ export default function Landschap() {
 
   return (
     <main className="landscape-shell" ref={landscapeRef}>
-      <iframe className="landscape-frame" src="/landschap.html?v=landschappen-beheer" title={`Interactief ${landscape.name}`} allow="fullscreen" />
+      <iframe ref={iframeRef} className="landscape-frame" src="/landschap.html?v=landschappen-beheer-2" title={`Interactief ${landscape.name}`} allow="fullscreen" onLoad={configureLandscapeMenu} />
       {contributions.map((contribution, index) => {
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 2 + index % 2);
         const palette = sparkPalettes[index % sparkPalettes.length];

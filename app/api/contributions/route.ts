@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
-import { contributions } from "@/db/schema";
+import { contributions, landscapes } from "@/db/schema";
 import { getDb } from "@/db";
 import { mediaUrl, readAttachments, type LandscapeContribution, type StoredAttachment } from "@/lib/contributions";
 import { ensureContributionStore } from "@/lib/contribution-store";
@@ -48,8 +48,12 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
 export async function GET(request: Request) {
   try {
     await ensureContributionStore();
-    const landscape = (await activeLandscape()).id;
-    const rows = await getDb().select().from(contributions).where(and(eq(contributions.status, "visible"), eq(contributions.landscape, landscape))).orderBy(desc(contributions.createdAt));
+    const active = await activeLandscape();
+    const requested = new URL(request.url).searchParams.get("landschap");
+    const target = requested ? await getDb().select().from(landscapes).where(eq(landscapes.id, requested)).limit(1) : [active];
+    const landscape = target[0];
+    if (!landscape || (!landscape.visible && landscape.id !== active.id)) return Response.json({ contributions: [] });
+    const rows = await getDb().select().from(contributions).where(and(eq(contributions.status, "visible"), eq(contributions.landscape, landscape.id))).orderBy(desc(contributions.createdAt));
     return Response.json({ contributions: rows.map(toLandscapeContribution) });
   } catch (error) {
     return Response.json({ error: "Het gedeelde landschap is nog niet beschikbaar." }, { status: 503 });

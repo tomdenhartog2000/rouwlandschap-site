@@ -11,8 +11,10 @@ export function ensureContributionStore() {
       db.prepare("CREATE INDEX IF NOT EXISTS idx_contributions_landscape_status_created_at ON contributions (landscape, status, created_at)"),
       db.prepare("CREATE TABLE IF NOT EXISTS ai_generations (id text PRIMARY KEY NOT NULL, created_at integer NOT NULL)"),
       db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_generations_created_at ON ai_generations (created_at)"),
-      db.prepare("CREATE TABLE IF NOT EXISTS landscapes (id text PRIMARY KEY NOT NULL, name text NOT NULL, active integer NOT NULL DEFAULT 0, created_at integer NOT NULL)"),
-      db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, created_at) VALUES ('test', 'Testlandschap', 1, 0)"),
+      db.prepare("CREATE TABLE IF NOT EXISTS landscapes (id text PRIMARY KEY NOT NULL, name text NOT NULL, active integer NOT NULL DEFAULT 0, visible integer NOT NULL DEFAULT 0, created_at integer NOT NULL)"),
+      db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('test', 'Testlandschap', 1, 1, 0)"),
+      db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('museum', 'Museumlandschap', 0, 0, 1)"),
+      db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('stilte', 'Landschap van stilte', 0, 0, 2)"),
     ]).then(() => undefined);
   }
   return ready;

@@ -31,5 +31,6 @@ export const landscapes = sqliteTable("landscapes", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   active: integer("active").notNull().default(0),
+  visible: integer("visible").notNull().default(0),
   createdAt: integer("created_at").notNull(),
 });
