@@ -391,9 +391,9 @@ body:has(.admin-page) {
 .entry-card h1 { margin: 0; font-size: clamp(24px, 5.5vw, 28px); font-weight: 400; line-height: 1.25; }
 .entry-card p { max-width: 330px; margin: 0 0 7px; color: #6b655b; font-size: 17px; line-height: 1.5; }
 .entry-card .primary-button { width: max-content; margin-top: 4px; text-decoration: none; }
-.entry-landscape-link { width: max-content; color: #6b655b; font-size: 16px; text-decoration: none; }
+.entry-landscape-link { width: max-content; color: #6b655b; font-size: 16px; font-style: italic; text-decoration: none; }
 .entry-landscape-link:hover, .entry-landscape-link:focus-visible { color: #2e2b26; text-decoration: underline; text-underline-offset: 3px; }
-.entry-participation { max-width: 410px; margin: 1px 0 0; color: #6b655b; font-size: 14px; line-height: 1.5; }
+.entry-participation { max-width: 410px; margin: 1px 0 0; color: #817b72; font-size: 14px; line-height: 1.5; }
 .entry-participation a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .entry-participation a:hover, .entry-participation a:focus-visible { color: #2e2b26; }
 

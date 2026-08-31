@@ -2,9 +2,8 @@ export default function Home() {
   return (
     <main className="entry-page">
       <section className="entry-card">
-        <h1>Een rouwdier kan allerlei vormen aannemen.</h1>
-        <p>Heb je al iets dat je wilt achterlaten, of wil je hier iets vormgeven?</p>
-        <p className="entry-participation">Je kunt iets voor jezelf maken en als afbeelding bewaren. Kies je aan het eind om het te delen, dan wordt je rouwdier bewaard en kunnen bezoekers het in het online landschap openen. Bij het vormgeven kun je, als je wilt, AI gebruiken. <a href="/over-ai">over AI en je bijdrage</a></p>
+        <h1>Heb je al iets dat met je meeleeft, of wil je hier iets vormgeven?</h1>
+        <p className="entry-participation">Je kunt iets voor jezelf maken en bewaren. Alleen als je aan het eind kiest om het online te delen, wordt het bewaard en kunnen bezoekers het openen. Bij het vormgeven kun je AI gebruiken, als je dat wilt. <a href="/over-ai">over AI en je bijdrage</a></p>
         <a className="primary-button link-button" href="/maak">maak een rouwdier</a>
         <a className="entry-landscape-link" href="/verken">of kijk eerst rond in het online landschap</a>
       </section>
