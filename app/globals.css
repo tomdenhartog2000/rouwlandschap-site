@@ -680,6 +680,10 @@ body:has(.admin-page) {
 .card-words { padding: 8px 0; font-size: 18px; }
 .card-reference { margin: 0; color: #6b655b; font-size: 14px; }
 .card-ai-label { margin: 2px 0 -5px; color: #6b655b; font-size: 13px; }
+.card-project-footer { display: grid; gap: 3px; margin-top: 10px; padding-top: 13px; border-top: 1px solid #d8d1c5; color: #6b655b; }
+.card-project-footer strong { color: #2e2b26; font-size: 14px; font-weight: 400; }
+.card-project-footer span { font-size: 13px; line-height: 1.4; }
+.card-project-footer small { margin-top: 3px; font-size: 12px; }
 .ai-result { margin-top: 22px; padding: 10px; background: #fffdf8; border: 1px solid #d8d1c5; }
 .ai-result img { display: block; width: 100%; max-height: 540px; object-fit: contain; background: #ebe6dc; }
 .audio-cover {

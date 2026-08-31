@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import QRCode from "qrcode";
 
 type InputMode = "write" | "photo" | "draw" | "voice" | "reference";
 type AiPath = "none" | "together" | "translate";
@@ -300,6 +301,38 @@ export default function MaakEenRouwdier() {
       context.font = "34px Arial, sans-serif";
       wrapCanvasText(context, description, contentWidth).slice(0, 8).forEach((line, index) => context.fillText(line, padding, descriptionTop + index * 46));
     }
+    const footerTop = 1400;
+    context.strokeStyle = "#d8d1c5";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(padding, footerTop - 28);
+    context.lineTo(width - padding, footerTop - 28);
+    context.stroke();
+    context.fillStyle = "#2e2b26";
+    context.font = "27px Arial, sans-serif";
+    context.fillText("Rouwdieren", padding, footerTop + 12);
+    context.fillStyle = "#6b655b";
+    context.font = "23px Arial, sans-serif";
+    context.fillText("een plek voor wat met verlies meeleeft", padding, footerTop + 48);
+    const qrUrl = `${window.location.origin}/over-rouwdieren`;
+    const qrImage = await new Promise<HTMLImageElement | null>((resolve) => {
+      QRCode.toDataURL(qrUrl, { width: 150, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } })
+        .then((source) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = () => resolve(null);
+          image.src = source;
+        })
+        .catch(() => resolve(null));
+    });
+    if (qrImage) {
+      context.drawImage(qrImage, width - padding - 150, footerTop - 4, 150, 150);
+      context.fillStyle = "#6b655b";
+      context.font = "20px Arial, sans-serif";
+      context.textAlign = "right";
+      context.fillText("lees over het project", width - padding, footerTop + 170);
+      context.textAlign = "left";
+    }
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) return;
     const safeTitle = visibleTitle.toLocaleLowerCase("nl-NL").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "rouwdier";
@@ -328,7 +361,7 @@ export default function MaakEenRouwdier() {
     </div>;
   };
 
-  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><p className="card-ai-label">gemaakt met AI</p><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></> : <>{photos[0] && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && audioUrl && <div className="audio-cover"><span>geluidsopname</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !audioUrl && words && <p className="card-words">{words}</p>}{audioUrl && <audio className="card-audio" controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{visibleDescription && <p className="card-description">{visibleDescription}</p>}</article>;
+  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><p className="card-ai-label">gemaakt met AI</p><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></> : <>{photos[0] && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && audioUrl && <div className="audio-cover"><span>geluidsopname</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !audioUrl && words && <p className="card-words">{words}</p>}{audioUrl && <audio className="card-audio" controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{visibleDescription && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><strong>Rouwdieren</strong><span>een plek voor wat met verlies meeleeft</span><small>QR-code op het gedownloade kaartje</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
     {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Wat wil je meenemen?</h1><p className="lead">Een rouwdier kan beginnen bij iets kleins. Je kunt één vorm kiezen, of verschillende dingen samenbrengen.</p><div className="input-options">{inputs.map((input) => { const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
