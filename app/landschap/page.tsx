@@ -61,11 +61,14 @@ function placementFor(id: string, offset = 0) {
 }
 
 export default function Landschap() {
+  const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
   const landscapeRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [contributions, setContributions] = useState<TestContribution[]>([]);
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
   const [newContributionId, setNewContributionId] = useState("");
+
+  useEffect(() => { void fetch("/api/landscapes/active", { cache: "no-store" }).then((response) => response.json()).then((data: { landscape?: { id?: string; name?: string } }) => { if (data.landscape?.id && data.landscape.name) setLandscape({ id: data.landscape.id, name: data.landscape.name }); }).catch(() => undefined); }, []);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("nieuw");
@@ -106,7 +109,7 @@ export default function Landschap() {
     void load();
     const interval = window.setInterval(load, 15_000);
     return () => { active = false; window.clearInterval(interval); };
-  }, []);
+  }, [landscape.id]);
 
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
@@ -133,7 +136,7 @@ export default function Landschap() {
 
   return (
     <main className="landscape-shell" ref={landscapeRef}>
-      <iframe className="landscape-frame" src="/landschap.html" title="Interactief Testlandschap" allow="fullscreen" />
+      <iframe className="landscape-frame" src="/landschap.html" title={`Interactief ${landscape.name}`} allow="fullscreen" />
       {contributions.map((contribution, index) => {
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 2 + index % 2);
         const palette = sparkPalettes[index % sparkPalettes.length];

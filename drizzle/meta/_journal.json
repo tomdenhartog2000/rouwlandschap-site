@@ -15,6 +15,20 @@
       "when": 1787910480832,
       "tag": "0001_redundant_albert_cleary",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788178227280,
+      "tag": "0002_dear_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788178641594,
+      "tag": "0003_quiet_thor",
+      "breakpoints": true
     }
   ]
 }

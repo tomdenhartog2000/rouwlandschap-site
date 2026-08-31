@@ -1,9 +1,10 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { contributions } from "@/db/schema";
 import { getDb } from "@/db";
 import { mediaUrl, readAttachments, type LandscapeContribution, type StoredAttachment } from "@/lib/contributions";
 import { ensureContributionStore } from "@/lib/contribution-store";
+import { activeLandscape } from "@/lib/landscape-store";
 
 type StorageEnv = { UPLOADS: R2Bucket };
 const MAX_IMAGES = 5;
@@ -39,14 +40,16 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
     text: row.textValue,
     reference: row.reference,
     referenceLink: row.referenceLink,
+    landscape: row.landscape,
     createdAt: row.createdAt,
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await ensureContributionStore();
-    const rows = await getDb().select().from(contributions).where(eq(contributions.status, "visible")).orderBy(desc(contributions.createdAt));
+    const landscape = (await activeLandscape()).id;
+    const rows = await getDb().select().from(contributions).where(and(eq(contributions.status, "visible"), eq(contributions.landscape, landscape))).orderBy(desc(contributions.createdAt));
     return Response.json({ contributions: rows.map(toLandscapeContribution) });
   } catch (error) {
     return Response.json({ error: "Het gedeelde landschap is nog niet beschikbaar." }, { status: 503 });
@@ -88,6 +91,7 @@ export async function POST(request: Request) {
     const now = Date.now();
     const kind = stringField(data, "kind", 80) || "Tekst";
     const title = stringField(data, "title", 140) || "een rouwdier";
+    const landscape = (await activeLandscape()).id;
     const [row] = await getDb().insert(contributions).values({
       id,
       title,
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
       reference: stringField(data, "reference"),
       referenceLink: stringField(data, "referenceLink", 1_000),
       attachmentsJson: JSON.stringify(attachments),
+      landscape,
       status: "visible",
       createdAt: now,
     }).returning();
