@@ -20,6 +20,8 @@ html:has(.make-page),
 body:has(.make-page),
 html:has(.entry-page),
 body:has(.entry-page),
+html:has(.information-page),
+body:has(.information-page),
 html:has(.admin-page),
 body:has(.admin-page) {
   height: auto;
