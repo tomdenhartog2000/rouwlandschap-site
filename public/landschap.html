@@ -1514,7 +1514,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         if (selected) {
           landscapeName.textContent = selected.name;
           landscapeScene.style.backgroundImage = selected.image
-            ? `linear-gradient(to top, rgba(15, 23, 31, .22), transparent 48%), url("${selected.image}")`
+            ? `linear-gradient(to top, rgba(15, 23, 31, .22), transparent 48%), url(&quot;${selected.image}&quot;)`
             : testBackground;
           sparks.forEach((button) =&gt; { button.hidden = !selected.hasSpark; });
         }
