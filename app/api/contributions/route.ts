@@ -27,6 +27,16 @@ function fileExtension(file: File, fallback: string) {
   return fromType || fallback;
 }
 
+function safeReferenceLink(value: string) {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 function toLandscapeContribution(row: typeof contributions.$inferSelect): LandscapeContribution {
   const attachments = readAttachments(row.attachmentsJson);
   return {
@@ -96,16 +106,25 @@ export async function POST(request: Request) {
     const now = Date.now();
     const kind = stringField(data, "kind", 80) || "Tekst";
     const title = stringField(data, "title", 140) || "een rouwdier";
+    const description = stringField(data, "description");
+    const textValue = stringField(data, "text");
+    const reference = stringField(data, "reference");
+    const referenceLink = safeReferenceLink(stringField(data, "referenceLink", 1_000));
+    if (!files.length && !description && !textValue && !reference && !referenceLink) {
+      return Response.json({ error: "Voeg eerst iets toe voordat je rouwdier kan worden gedeeld." }, { status: 400 });
+    }
+    const requestedMotion = stringField(data, "motion", 24);
+    const motion = requestedMotion === "breathe" || requestedMotion === "drift" || requestedMotion === "sway" ? requestedMotion : "";
     const landscape = (await activeLandscape()).id;
     const [row] = await getDb().insert(contributions).values({
       id,
       title,
-      description: stringField(data, "description"),
+      description,
       kind,
-      textValue: stringField(data, "text"),
-      reference: stringField(data, "reference"),
-      referenceLink: stringField(data, "referenceLink", 1_000),
-      motion: stringField(data, "motion", 24),
+      textValue,
+      reference,
+      referenceLink,
+      motion,
       attachmentsJson: JSON.stringify(attachments),
       landscape,
       status: "visible",

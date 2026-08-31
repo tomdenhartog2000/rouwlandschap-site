@@ -17,7 +17,7 @@ export default function OverAi() {
         <section>
           <h2>Als je AI gebruikt</h2>
           <p>AI is een optie, geen vereiste. Je kunt zelf iets maken, samen met AI verder werken, of AI vragen jouw input naar een andere vorm te vertalen.</p>
-          <p>Alleen wanneer je hiervoor kiest en de toestemming aanvinkt, gaan de invoer die je voor de AI-versie kiest en je aanwijzing tijdelijk naar OpenAI. OpenAI maakt daarmee een beeldvoorstel. Bij een geluidsopname gebeurt dit alleen als je ook kiest om de woorden uit die opname voor het beeld te gebruiken.</p>
+          <p>Alleen wanneer je hiervoor kiest en de toestemming aanvinkt, gaan de invoer die je voor de AI-versie kiest en je aanwijzing tijdelijk naar OpenAI. OpenAI maakt daarmee een beeldvoorstel, ordent je eigen woorden of kiest een rustige beweging. Bij een geluidsopname gebeurt dit alleen als je ook kiest om de woorden uit die opname voor het beeld te gebruiken.</p>
           <p>De bijdrage die je met AI maakt blijft van jou. Je kunt de AI-versie aanpassen, niet gebruiken, of zonder AI verdergaan.</p>
         </section>
 
