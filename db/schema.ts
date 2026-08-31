@@ -10,6 +10,7 @@ export const contributions = sqliteTable(
     textValue: text("text_value").notNull().default(""),
     reference: text("reference").notNull().default(""),
     referenceLink: text("reference_link").notNull().default(""),
+    motion: text("motion").notNull().default(""),
     attachmentsJson: text("attachments_json").notNull().default("[]"),
     landscape: text("landscape").notNull().default("test"),
     status: text("status").notNull().default("visible"),

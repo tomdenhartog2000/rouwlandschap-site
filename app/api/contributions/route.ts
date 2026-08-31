@@ -40,6 +40,7 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
     text: row.textValue,
     reference: row.reference,
     referenceLink: row.referenceLink,
+    motion: row.motion,
     landscape: row.landscape,
     createdAt: row.createdAt,
   };
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
       textValue: stringField(data, "text"),
       reference: stringField(data, "reference"),
       referenceLink: stringField(data, "referenceLink", 1_000),
+      motion: stringField(data, "motion", 24),
       attachmentsJson: JSON.stringify(attachments),
       landscape,
       status: "visible",

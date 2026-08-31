@@ -237,6 +237,15 @@ body:has(.admin-page) {
   border: 1px solid #d8d1c5;
   border-radius: 3px;
 }
+.created-contribution-card.opened-motion-breathe img,
+.created-contribution-card.opened-motion-breathe .created-contribution-audio,
+.created-contribution-card.opened-motion-breathe > div { animation: rouwdier-breathe 7s ease-in-out infinite; }
+.created-contribution-card.opened-motion-drift img,
+.created-contribution-card.opened-motion-drift .created-contribution-audio,
+.created-contribution-card.opened-motion-drift > div { animation: rouwdier-drift 13s ease-in-out infinite alternate; }
+.created-contribution-card.opened-motion-sway img,
+.created-contribution-card.opened-motion-sway .created-contribution-audio,
+.created-contribution-card.opened-motion-sway > div { animation: rouwdier-sway 10s ease-in-out infinite; }
 .created-contribution-card > p { margin: 0 0 10px; color: #6b655b; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
 .created-contribution-card h1 { margin: 0 35px 19px 0; font: 400 25px/1.25 "Atkinson Hyperlegible", Arial, sans-serif; }
 .created-contribution-card img { display: block; width: 100%; max-height: 390px; margin: 0 0 18px; object-fit: contain; background: #ebe6dc; }
@@ -686,6 +695,16 @@ body:has(.admin-page) {
 .card-project-footer small { margin-top: 3px; font-size: 12px; }
 .ai-result { margin-top: 22px; padding: 10px; background: #fffdf8; border: 1px solid #d8d1c5; }
 .ai-result img { display: block; width: 100%; max-height: 540px; object-fit: contain; background: #ebe6dc; }
+.ai-text-result { padding: 18px; color: #2e2b26; font-size: 16px; line-height: 1.55; white-space: pre-wrap; }
+.motion-preview { display: grid; min-height: 150px; place-items: center; gap: 12px; padding: 22px; color: #6b655b; background: #fffdf8; border: 1px solid #d8d1c5; border-radius: 3px; text-align: center; }
+.motion-preview span { display: block; width: 18px; height: 18px; border-radius: 50%; background: #6b655b; }
+.motion-preview p { margin: 0; font-size: 14px; line-height: 1.45; }
+.motion-breathe span { animation: rouwdier-breathe 5.4s ease-in-out infinite; }
+.motion-drift span { animation: rouwdier-drift 8s ease-in-out infinite alternate; }
+.motion-sway span { animation: rouwdier-sway 6.5s ease-in-out infinite; }
+@keyframes rouwdier-breathe { 0%, 100% { transform: scale(.8); opacity: .56; } 50% { transform: scale(1.25); opacity: 1; } }
+@keyframes rouwdier-drift { from { transform: translate(-36px, 8px); opacity: .58; } to { transform: translate(36px, -8px); opacity: 1; } }
+@keyframes rouwdier-sway { 0%, 100% { transform: translateX(-28px); } 50% { transform: translateX(28px); } }
 .audio-cover {
   display: grid;
   min-height: 180px;

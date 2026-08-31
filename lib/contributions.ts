@@ -15,6 +15,7 @@ export type LandscapeContribution = {
   text: string;
   reference: string;
   referenceLink: string;
+  motion: string;
   landscape: string;
   createdAt: number;
 };
