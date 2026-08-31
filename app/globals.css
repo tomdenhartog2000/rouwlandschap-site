@@ -35,6 +35,58 @@ body:has(.admin-page) {
   border: 0;
 }
 
+.visitor-landscape-control {
+  position: absolute;
+  z-index: 8;
+  top: max(13px, env(safe-area-inset-top));
+  left: max(13px, env(safe-area-inset-left));
+}
+.visitor-landscape-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.visitor-landscape-toggle span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 244, 211, .88);
+  box-shadow: 0 0 7px rgba(255, 231, 169, .65), 0 0 16px rgba(255, 211, 116, .28);
+}
+.visitor-landscape-toggle span:nth-child(2) { width: 7px; height: 7px; }
+.visitor-landscape-toggle:hover span, .visitor-landscape-toggle:focus-visible span, .visitor-landscape-toggle[aria-expanded="true"] span { transform: scale(1.18); }
+.visitor-landscape-toggle:focus-visible { outline: 1px solid rgba(255, 244, 207, .7); outline-offset: 1px; }
+.visitor-landscape-menu {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  display: grid;
+  width: min(258px, calc(100vw - 28px));
+  padding: 14px;
+  border: 1px solid rgba(255, 232, 174, .25);
+  border-radius: 15px;
+  background: linear-gradient(145deg, rgba(35, 59, 51, .9), rgba(20, 35, 42, .84));
+  color: #fffaf1;
+  box-shadow: 0 12px 32px rgba(10, 16, 23, .26);
+  backdrop-filter: blur(12px);
+}
+.visitor-landscape-menu p { margin: 0 0 4px; color: rgba(255, 243, 209, .6); font: .72rem/1.2 Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.visitor-landscape-menu strong { color: #fff8e7; font: 1.08rem/1.3 Georgia, serif; font-weight: 400; }
+.visitor-menu-divider { height: 1px; margin: 13px 0 8px; background: rgba(255, 239, 199, .18); }
+.visitor-landscape-menu button { width: 100%; padding: 9px 7px; color: rgba(255, 250, 241, .84); background: transparent; border: 0; border-radius: 8px; font: .95rem/1.3 Arial, sans-serif; text-align: left; cursor: pointer; }
+.visitor-landscape-menu button::before { content: ""; display: inline-block; width: 4px; height: 4px; margin: 0 9px 2px 1px; border-radius: 50%; background: rgba(255, 238, 193, .52); box-shadow: 0 0 5px rgba(255, 224, 153, .28); }
+.visitor-landscape-menu button:hover, .visitor-landscape-menu button:focus-visible { color: #fffaf1; background: rgba(255, 255, 255, .08); outline: 0; }
+.visitor-landscape-menu .visitor-make-link { margin-top: 1px; padding-top: 10px; color: #fff3cb; font-size: .9rem; }
+.visitor-landscape-menu .visitor-make-link::before { display: none; }
+
 .fullscreen-button {
   position: absolute;
   z-index: 5;

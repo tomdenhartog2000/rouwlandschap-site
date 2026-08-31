@@ -63,6 +63,7 @@ function placementFor(id: string, offset = 0) {
 export default function Landschap() {
   const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
   const [visitorLandscapes, setVisitorLandscapes] = useState<Array<{ id: string; name: string }>>([]);
+  const [landscapeMenuOpen, setLandscapeMenuOpen] = useState(false);
   const landscapeRef = useRef<HTMLElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const initialLandscapeRef = useRef(true);
@@ -130,7 +131,7 @@ export default function Landschap() {
         const remote = data.contributions.map((contribution, index) => ({ ...contribution, ...placementFor(contribution.id, index) }));
         if (active) setContributions([...remote, ...local.filter((item) => (item.landscape || "test") === landscape.id && !remote.some((shared) => shared.id === item.id))]);
       } catch {
-        if (active) setContributions(local);
+        if (active) setContributions(local.filter((item) => (item.landscape || "test") === landscape.id));
       }
     };
     void load();
@@ -142,15 +143,6 @@ export default function Landschap() {
     const openMakeSpace = (event: MessageEvent) => {
       if (event.data?.type === "rouwdier:open-make") window.location.assign("/maak");
       if (event.data?.type === "rouwdier:landscape-ready") configureLandscapeMenu();
-      if (event.data?.type === "rouwdier:select-landscape") {
-        const next = visitorLandscapes.find((item) => item.id === event.data.landscape);
-        if (!next) return;
-        const url = new URL(window.location.href);
-        url.searchParams.set("landschap", next.id);
-        url.searchParams.delete("nieuw");
-        window.history.replaceState({}, "", url);
-        setLandscape(next);
-      }
     };
     window.addEventListener("message", openMakeSpace);
     return () => window.removeEventListener("message", openMakeSpace);
@@ -166,6 +158,17 @@ export default function Landschap() {
     window.addEventListener("keydown", openBeheer);
     return () => window.removeEventListener("keydown", openBeheer);
   }, []);
+
+  const selectLandscape = (next: { id: string; name: string }) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("landschap", next.id);
+    url.searchParams.delete("nieuw");
+    window.history.replaceState({}, "", url);
+    setOpenContribution(null);
+    setNewContributionId("");
+    setLandscapeMenuOpen(false);
+    setLandscape(next);
+  };
 
   const toggleFullscreen = async () => {
     const landscape = landscapeRef.current as FullscreenElement | null;
@@ -185,6 +188,18 @@ export default function Landschap() {
   return (
     <main className="landscape-shell" ref={landscapeRef}>
       <iframe ref={iframeRef} className="landscape-frame" src="/landschap.html?v=landschappen-beheer-2" title={`Interactief ${landscape.name}`} allow="fullscreen" onLoad={configureLandscapeMenu} />
+      <div className="visitor-landscape-control">
+        <button type="button" className="visitor-landscape-toggle" aria-label="Open landschappenmenu" aria-expanded={landscapeMenuOpen} onClick={() => setLandscapeMenuOpen((open) => !open)}>
+          <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
+        </button>
+        {landscapeMenuOpen && <div className="visitor-landscape-menu">
+          <p>je bent in</p>
+          <strong>{landscape.name}</strong>
+          {visitorLandscapes.filter((item) => item.id !== landscape.id).length > 0 && <><div className="visitor-menu-divider" /><p>andere landschappen</p>{visitorLandscapes.filter((item) => item.id !== landscape.id).map((item) => <button key={item.id} type="button" onClick={() => selectLandscape(item)}>{item.name}</button>)}</>}
+          <div className="visitor-menu-divider" />
+          <button type="button" className="visitor-make-link" onClick={() => window.location.assign("/maak")}>Wil jij iets toevoegen?</button>
+        </div>}
+      </div>
       {contributions.map((contribution, index) => {
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 2 + index % 2);
         const palette = sparkPalettes[index % sparkPalettes.length];
