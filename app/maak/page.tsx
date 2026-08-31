@@ -228,32 +228,40 @@ export default function MaakEenRouwdier() {
   };
   const downloadCard = async () => {
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    const width = 1200;
-    const height = 1600;
-    const padding = 90;
+    const width = 900;
+    const padding = 54;
     const contentWidth = width - padding * 2;
     canvas.width = width;
+    canvas.height = 100;
+    let context = canvas.getContext("2d");
+    if (!context) return;
+    context.font = "38px Arial, sans-serif";
+    const titleLines = wrapCanvasText(context, visibleTitle, contentWidth).slice(0, 3);
+    const mediaSource = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
+    const mediaHeight = mediaSource ? contentWidth : audioUrl || words ? 270 : 0;
+    const mediaTop = 160 + Math.max(1, titleLines.length) * 48;
+    const bodyText = !mediaSource && words ? words : visibleDescription;
+    context.font = "27px Arial, sans-serif";
+    const bodyLines = bodyText ? wrapCanvasText(context, bodyText, contentWidth - 42).slice(0, 7) : [];
+    const descriptionTop = mediaTop + (mediaHeight ? mediaHeight + 34 : 12);
+    const footerTop = descriptionTop + (bodyLines.length ? bodyLines.length * 38 + 42 : 28);
+    const height = Math.max(720, footerTop + 156 + padding);
     canvas.height = height;
+    context = canvas.getContext("2d");
+    if (!context) return;
     context.fillStyle = "#f7f4ec";
     context.fillRect(0, 0, width, height);
     context.fillStyle = "#fffdf8";
-    context.fillRect(42, 42, width - 84, height - 84);
+    context.fillRect(20, 20, width - 40, height - 40);
     context.strokeStyle = "#d8d1c5";
-    context.lineWidth = 2;
-    context.strokeRect(42, 42, width - 84, height - 84);
+    context.lineWidth = 1.5;
+    context.strokeRect(20, 20, width - 40, height - 40);
     context.fillStyle = "#6b655b";
-    context.font = "28px Arial, sans-serif";
-    context.fillText("rouwdier", padding, 130);
+    context.font = "20px Arial, sans-serif";
+    context.fillText("rouwdier", padding, 76);
     context.fillStyle = "#2e2b26";
-    context.font = "56px Arial, sans-serif";
-    const titleLines = wrapCanvasText(context, visibleTitle, contentWidth);
-    titleLines.slice(0, 3).forEach((line, index) => context.fillText(line, padding, 212 + index * 66));
-    const titleHeight = Math.max(1, Math.min(titleLines.length, 3)) * 66;
-    const mediaSource = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
-    const mediaTop = 260 + titleHeight;
-    const mediaHeight = 610;
+    context.font = "38px Arial, sans-serif";
+    titleLines.forEach((line, index) => context.fillText(line, padding, 130 + index * 48));
     if (mediaSource) {
       const image = await new Promise<HTMLImageElement>((resolve, reject) => {
         const item = new Image();
@@ -273,47 +281,42 @@ export default function MaakEenRouwdier() {
       }
     } else if (audioUrl) {
       context.fillStyle = "#ebe6dc";
-      context.fillRect(padding, mediaTop, contentWidth, 340);
+      context.fillRect(padding, mediaTop, contentWidth, mediaHeight);
       context.fillStyle = "#2e2b26";
-      context.font = "34px Arial, sans-serif";
-      context.fillText("geluidsopname", padding + 38, mediaTop + 76);
+      context.font = "27px Arial, sans-serif";
+      context.fillText("geluidsopname", padding + 30, mediaTop + 58);
       context.strokeStyle = "#6b655b";
-      context.lineWidth = 6;
-      for (let index = 0; index < 27; index += 1) {
-        const x = padding + 38 + index * 38;
-        const waveHeight = 26 + ((index * 31) % 130);
+      context.lineWidth = 5;
+      for (let index = 0; index < 22; index += 1) {
+        const x = padding + 32 + index * 34;
+        const waveHeight = 20 + ((index * 31) % 92);
         context.beginPath();
-        context.moveTo(x, mediaTop + 230 - waveHeight / 2);
-        context.lineTo(x, mediaTop + 230 + waveHeight / 2);
+        context.moveTo(x, mediaTop + 170 - waveHeight / 2);
+        context.lineTo(x, mediaTop + 170 + waveHeight / 2);
         context.stroke();
       }
     } else if (words) {
       context.fillStyle = "#ebe6dc";
-      context.fillRect(padding, mediaTop, contentWidth, 340);
+      context.fillRect(padding, mediaTop, contentWidth, mediaHeight);
       context.fillStyle = "#2e2b26";
-      context.font = "38px Arial, sans-serif";
-      wrapCanvasText(context, words, contentWidth - 76).slice(0, 7).forEach((line, index) => context.fillText(line, padding + 38, mediaTop + 80 + index * 48));
+      context.font = "27px Arial, sans-serif";
+      wrapCanvasText(context, words, contentWidth - 42).slice(0, 6).forEach((line, index) => context.fillText(line, padding + 22, mediaTop + 58 + index * 38));
     }
-    const descriptionTop = mediaSource ? mediaTop + mediaHeight + 72 : mediaTop + 415;
-    const description = visibleDescription || (!mediaSource && !audioUrl ? words : "");
-    if (description) {
+    if (visibleDescription && (mediaSource || audioUrl || words !== visibleDescription)) {
       context.fillStyle = "#2e2b26";
-      context.font = "34px Arial, sans-serif";
-      wrapCanvasText(context, description, contentWidth).slice(0, 8).forEach((line, index) => context.fillText(line, padding, descriptionTop + index * 46));
+      context.font = "27px Arial, sans-serif";
+      wrapCanvasText(context, visibleDescription, contentWidth).slice(0, 6).forEach((line, index) => context.fillText(line, padding, descriptionTop + index * 38));
     }
-    const footerTop = 1400;
     context.strokeStyle = "#d8d1c5";
-    context.lineWidth = 2;
+    context.lineWidth = 1.5;
     context.beginPath();
-    context.moveTo(padding, footerTop - 28);
-    context.lineTo(width - padding, footerTop - 28);
+    context.moveTo(padding, footerTop - 18);
+    context.lineTo(width - padding, footerTop - 18);
     context.stroke();
-    context.fillStyle = "#2e2b26";
-    context.font = "27px Arial, sans-serif";
-    context.fillText("Rouwdieren", padding, footerTop + 12);
     context.fillStyle = "#6b655b";
-    context.font = "23px Arial, sans-serif";
-    context.fillText("een plek voor wat met verlies meeleeft", padding, footerTop + 48);
+    context.font = "20px Arial, sans-serif";
+    context.fillText("Meer weten over rouwdieren?", padding, footerTop + 25);
+    context.fillText("Scan de QR-code.", padding, footerTop + 53);
     const qrUrl = `${window.location.origin}/over-rouwdieren`;
     const qrImage = await new Promise<HTMLImageElement | null>((resolve) => {
       QRCode.toDataURL(qrUrl, { width: 150, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } })
@@ -326,12 +329,7 @@ export default function MaakEenRouwdier() {
         .catch(() => resolve(null));
     });
     if (qrImage) {
-      context.drawImage(qrImage, width - padding - 150, footerTop - 4, 150, 150);
-      context.fillStyle = "#6b655b";
-      context.font = "20px Arial, sans-serif";
-      context.textAlign = "right";
-      context.fillText("lees over het project", width - padding, footerTop + 170);
-      context.textAlign = "left";
+      context.drawImage(qrImage, width - padding - 112, footerTop - 4, 112, 112);
     }
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) return;
@@ -361,7 +359,7 @@ export default function MaakEenRouwdier() {
     </div>;
   };
 
-  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><p className="card-ai-label">gemaakt met AI</p><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></> : <>{photos[0] && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && audioUrl && <div className="audio-cover"><span>geluidsopname</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !audioUrl && words && <p className="card-words">{words}</p>}{audioUrl && <audio className="card-audio" controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{visibleDescription && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><strong>Rouwdieren</strong><span>een plek voor wat met verlies meeleeft</span><small>QR-code op het gedownloade kaartje</small></footer></article>;
+  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /> : <>{photos[0] && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && audioUrl && <div className="audio-cover"><span>geluidsopname</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !audioUrl && words && <p className="card-words">{words}</p>}{audioUrl && <audio className="card-audio" controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{visibleDescription && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
     {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Wat wil je meenemen?</h1><p className="lead">Een rouwdier kan beginnen bij iets kleins. Je kunt één vorm kiezen, of verschillende dingen samenbrengen.</p><div className="input-options">{inputs.map((input) => { const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
