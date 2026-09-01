@@ -220,16 +220,30 @@ export default function MaakEenRouwdier() {
       const y = yTotal / total;
       addTone(0, seconds, frequencyForHeight(y, height), .095, selectedSonificationStyle.waveform);
     } else {
-      const columns = 48, bands = 7, step = seconds / columns;
-      for (let column = 0; column < columns; column += 1) for (let band = 0; band < bands; band += 1) {
-        const x = Math.min(width - 1, Math.floor((column / columns) * width));
-        const y = Math.min(height - 1, Math.floor((band / bands) * height));
-        const index = (y * width + x) * 4;
-        const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
-        if (data[index + 3] > 10 && darkness > 28) {
-          addTone(column * step, step * 2.6, frequencyForHeight(y, height), Math.min(.068, darkness / 2700), selectedSonificationStyle.waveform);
+      const columns = 72, step = seconds / columns;
+      const oscillator = offline.createOscillator();
+      const gain = offline.createGain();
+      oscillator.type = selectedSonificationStyle.waveform;
+      let previousFrequency = frequencyForHeight(height * .52, height);
+      oscillator.frequency.setValueAtTime(previousFrequency, 0);
+      gain.gain.setValueAtTime(.0001, 0);
+      gain.gain.linearRampToValueAtTime(.055, .22);
+      for (let column = 0; column < columns; column += 1) {
+        const xStart = Math.floor((column / columns) * width);
+        const xEnd = Math.min(width, Math.ceil(((column + 1) / columns) * width));
+        let total = 0, yTotal = 0;
+        for (let x = xStart; x < xEnd; x += 2) for (let y = 0; y < height; y += 4) {
+          const index = (y * width + x) * 4;
+          const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
+          if (data[index + 3] > 10 && darkness > 24) { total += darkness; yTotal += y * darkness; }
         }
+        if (total) previousFrequency = frequencyForHeight(yTotal / total, height);
+        oscillator.frequency.linearRampToValueAtTime(previousFrequency, Math.min(seconds - .03, (column + 1) * step));
       }
+      gain.gain.exponentialRampToValueAtTime(.0001, seconds);
+      oscillator.connect(gain).connect(offline.destination);
+      oscillator.start(0);
+      oscillator.stop(seconds);
     }
     const blob = audioBufferToWav(await offline.startRendering());
     const file = new File([blob], "klank-van-de-tekening.wav", { type: "audio/wav" });
@@ -510,7 +524,7 @@ export default function MaakEenRouwdier() {
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => setReferenceLink(event.target.value)} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label><p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
-      {mode === "draw" && <div className="drawing-area"><canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} /><button type="button" className="clear-button" onClick={clearDrawing}>wis tekening</button><div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><label className="live-sound-choice"><input type="checkbox" checked={liveDrawingSound} onChange={(event) => setLiveDrawingSound(event.target.checked)} />laat tijdens het tekenen klank horen</label>{drawingDataUrl && <div className="drawing-sound-area"><p>Welke klank past er nu bij?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Wil je één klank maken, of je tekening als een kort klankspoor horen?</p><div className="drawing-sound-options"><button type="button" className={sonificationMode === "tone" ? "is-selected" : ""} onClick={() => setSonificationMode("tone")}>één klank</button><button type="button" className={sonificationMode === "score" ? "is-selected" : ""} onClick={() => setSonificationMode("score")}>een klankspoor</button></div><button type="button" className="secondary-button" onClick={() => void createSonification()}>{sonificationUrl ? "maak opnieuw" : "beluister je tekening"}</button>{sonificationUrl && <audio controls src={sonificationUrl}>Je browser kan deze klank niet afspelen.</audio>}<small>Deze klank wordt op jouw apparaat uit de tekening gemaakt.</small></div>}</div>}
+      {mode === "draw" && <div className="drawing-area"><canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} /><button type="button" className="clear-button" onClick={clearDrawing}>wis tekening</button><div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><label className="live-sound-choice"><input type="checkbox" checked={liveDrawingSound} onChange={(event) => setLiveDrawingSound(event.target.checked)} />laat tijdens het tekenen klank horen</label>{drawingDataUrl && <div className="drawing-sound-area"><p>Welke klank past er nu bij?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Wil je één klank maken, of een toon die rustig door de tekening heen beweegt?</p><div className="drawing-sound-options"><button type="button" className={sonificationMode === "tone" ? "is-selected" : ""} onClick={() => setSonificationMode("tone")}>één klank</button><button type="button" className={sonificationMode === "score" ? "is-selected" : ""} onClick={() => setSonificationMode("score")}>vloeiende toon</button></div><button type="button" className="secondary-button" onClick={() => void createSonification()}>{sonificationUrl ? "maak opnieuw" : "beluister je tekening"}</button>{sonificationUrl && <audio controls src={sonificationUrl}>Je browser kan deze klank niet afspelen.</audio>}<small>Deze klank wordt op jouw apparaat uit de tekening gemaakt.</small></div>}</div>}
       {mode === "voice" && <div className="voice-area">{!audioUrl && <p>Je kunt je opname eerst hier beluisteren.</p>}{audioUrl && <audio controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}<button type="button" className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin opname"}</button>{microphoneError && <small>De microfoon is niet beschikbaar. Je kunt ook schrijven, tekenen of een foto kiezen.</small>}</div>}
     </div>;
   };
