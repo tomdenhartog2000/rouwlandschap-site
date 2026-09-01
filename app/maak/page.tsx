@@ -162,12 +162,14 @@ export default function MaakEenRouwdier() {
     liveAudioContextRef.current = audioContext;
     void audioContext.resume();
     const instrumentName = sonificationInstrument === "synth" ? "string_ensemble_1" : sonificationInstrument;
+    const liveBaseMidi = sonificationStyle === "quiet" ? 43 : sonificationStyle === "clear" ? 53 : 48;
+    const liveGain = sonificationStyle === "quiet" ? .19 : sonificationStyle === "clear" ? .24 : .28;
     const play = (instrument: SoundfontPlayer) => {
       if (!drawing.current) return;
       const y = Math.max(0, Math.min(1, 1 - point.y / 720));
       const scale = [0, 3, 5, 7, 10];
       const degree = Math.max(0, Math.min(scale.length - 1, Math.round(y * (scale.length - 1))));
-      instrument.play(midiToNoteName(48 + scale[degree]), audioContext.currentTime, { duration: .72, attack: .1, release: .36, gain: .28 });
+      instrument.play(midiToNoteName(liveBaseMidi + scale[degree]), audioContext.currentTime, { duration: sonificationStyle === "quiet" ? .9 : .72, attack: .1, release: sonificationStyle === "quiet" ? .5 : .36, gain: liveGain });
     };
     if (liveInstrumentRef.current && liveInstrumentNameRef.current === instrumentName) { play(liveInstrumentRef.current); return; }
     void loadSoundfont().then((soundfont) => soundfont.instrument(audioContext, instrumentName)).then((instrument) => {
@@ -239,6 +241,11 @@ export default function MaakEenRouwdier() {
     const offline = new OfflineAudioContext(1, Math.ceil(sampleRate * seconds), sampleRate);
     const soundfont = await loadSoundfont();
     const instrument = await soundfont.instrument(offline, sonificationInstrument);
+    const character = sonificationStyle === "quiet"
+      ? { baseMidi: 43, gain: .48, duration: 1.25, release: 1.05 }
+      : sonificationStyle === "clear"
+        ? { baseMidi: 53, gain: .55, duration: .78, release: .56 }
+        : { baseMidi: 48, gain: .62, duration: 1, release: .8 };
     const { data } = pixels;
     const { width, height } = canvas;
     const darknessAt = (x: number, y: number) => {
@@ -257,7 +264,7 @@ export default function MaakEenRouwdier() {
       const relativeHeight = 1 - yTotal / total / height;
       const scale = [0, 3, 5, 7, 10];
       const degree = Math.max(0, Math.min(scale.length - 1, Math.round(relativeHeight * (scale.length - 1))));
-      instrument.play(midiToNoteName(48 + scale[degree]), 0.03, { duration: seconds - .08, attack: .25, release: .8, gain: .62 });
+      instrument.play(midiToNoteName(character.baseMidi + scale[degree]), 0.03, { duration: seconds - .08, attack: .25, release: character.release, gain: character.gain });
     } else {
       const scale = [0, 3, 5, 7, 10];
       const bands = 6;
@@ -265,7 +272,7 @@ export default function MaakEenRouwdier() {
       const step = seconds / columns;
       const bandHeight = height / bands;
       for (let band = 0; band < bands; band += 1) {
-        const midi = 48 + scale[(bands - 1 - band) % scale.length] + (band === 0 ? 12 : 0);
+        const midi = character.baseMidi + scale[(bands - 1 - band) % scale.length] + (band === 0 ? 12 : 0);
         let lastPlayedColumn = -99;
         for (let column = 0; column < columns; column += 1) {
           const xStart = Math.floor(column * width / columns);
@@ -278,7 +285,7 @@ export default function MaakEenRouwdier() {
           const darkness = samples ? total / samples : 0;
           if (darkness < 18 || column - lastPlayedColumn < 3) continue;
           lastPlayedColumn = column;
-          instrument.play(midiToNoteName(midi), column * step + .03, { duration: step * 3.25, attack: .14, release: step * 1.5, gain: Math.min(.82, darkness / 255 * 1.15) });
+          instrument.play(midiToNoteName(midi), column * step + .03, { duration: step * 3.25 * character.duration, attack: .14, release: step * 1.5 * character.release, gain: Math.min(character.gain, darkness / 255 * character.gain * 1.85) });
         }
       }
     }
