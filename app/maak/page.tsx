@@ -73,6 +73,7 @@ export default function MaakEenRouwdier() {
   const [careReflection, setCareReflection] = useState("");
   const [reference, setReference] = useState("");
   const [referenceLink, setReferenceLink] = useState("");
+  const [includeReferenceQr, setIncludeReferenceQr] = useState(false);
   const [photos, setPhotos] = useState<Array<{ name: string; url: string; dataUrl: string }>>([]);
   const [audioUrl, setAudioUrl] = useState("");
   const [audioDataUrl, setAudioDataUrl] = useState("");
@@ -573,7 +574,8 @@ export default function MaakEenRouwdier() {
     const mediaTop = titleTop + titleLines.length * 34 + 24;
     const bodyTop = mediaTop + mediaHeight + (mediaHeight ? 25 : 0);
     const footerTop = bodyTop + bodyLines.length * 26 + (bodyLines.length ? 28 : 10);
-    const height = Math.max(500, footerTop + 118 + inset + padding);
+    const footerHeight = includeReferenceQr && referenceLink ? 178 : 118;
+    const height = Math.max(500, footerTop + footerHeight + inset + padding);
     canvas.height = height;
     context = canvas.getContext("2d");
     if (!context) return;
@@ -608,15 +610,30 @@ export default function MaakEenRouwdier() {
     context.stroke();
     context.fillStyle = "#6b655b";
     context.font = "14px Arial, sans-serif";
-    context.fillText("Meer weten over rouwdieren?", inset + padding, footerTop + 26);
-    context.fillText("Scan de QR-code.", inset + padding, footerTop + 47);
+    const hasReferenceQr = includeReferenceQr && Boolean(referenceLink);
+    const sourceFooterTop = footerTop + 26;
+    if (hasReferenceQr) {
+      context.fillText("Open de verwijzing", inset + padding, sourceFooterTop);
+      context.fillText("Scan de QR-code.", inset + padding, sourceFooterTop + 21);
+    }
+    const projectFooterTop = footerTop + (hasReferenceQr ? 104 : 26);
+    context.fillText("Meer weten over rouwdieren?", inset + padding, projectFooterTop);
+    context.fillText("Scan de QR-code.", inset + padding, projectFooterTop + 21);
     const qrUrl = `${window.location.origin}/over-rouwdieren`;
     const qrImage = await new Promise<HTMLImageElement | null>((resolve) => {
       QRCode.toDataURL(qrUrl, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
         const image = new Image(); image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = source;
       }).catch(() => resolve(null));
     });
-    if (qrImage) context.drawImage(qrImage, width - inset - padding - 84, footerTop + 13, 84, 84);
+    if (qrImage) context.drawImage(qrImage, width - inset - padding - 84, projectFooterTop - 13, 84, 84);
+    if (hasReferenceQr) {
+      const referenceQr = await new Promise<HTMLImageElement | null>((resolve) => {
+        QRCode.toDataURL(referenceLink, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
+          const image = new Image(); image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = source;
+        }).catch(() => resolve(null));
+      });
+      if (referenceQr) context.drawImage(referenceQr, width - inset - padding - 84, sourceFooterTop - 13, 84, 84);
+    }
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) return;
     const safeTitle = visibleTitle.toLocaleLowerCase("nl-NL").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "rouwdier";
@@ -638,7 +655,7 @@ export default function MaakEenRouwdier() {
     return <div className="input-surface" key={mode}>
       <p className="surface-label">{label}</p>
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
-      {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => setReferenceLink(event.target.value)} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label><p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
+      {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
       {(mode === "draw" || mode === "sounddraw") && <>{mode === "sounddraw" && <div className="sound-controls"><p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p><div className="drawing-sound-area"><p>Welke klank wil je tekenen?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Welke instrumentklank wil je horen?</p><div className="drawing-sound-options">{sonificationInstruments.map((instrument) => <button type="button" key={instrument.id} className={sonificationInstrument === instrument.id ? "is-selected" : ""} onClick={() => setSonificationInstrument(instrument.id)}><strong>{instrument.title}</strong><span>{instrument.text}</span></button>)}</div></div></div>}<div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><div className="drawing-area">
         <canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
