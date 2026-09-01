@@ -34,5 +34,6 @@ test("AI options require clear consent and stay optional", async () => {
   const page = await source("app/maak/page.tsx");
   assert.match(page, /disabled=\{isGenerating \|\| !hasAiConsent\}/);
   assert.match(page, /Ik wil zonder AI verder/);
-  assert.match(page, /Je kunt ook beeld en beweging samen kiezen/);
+  assert.match(page, /Je kiest nu één bewerking/);
+  assert.doesNotMatch(page, /achtergrond of extra beeldlaag/);
 });
