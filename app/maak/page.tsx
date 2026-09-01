@@ -207,7 +207,7 @@ export default function MaakEenRouwdier() {
       for (let y = 0; y < height; y += 8) for (let x = 0; x < width; x += 8) {
         const index = (y * width + x) * 4;
         const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
-        if (darkness > 24) { total += darkness; yTotal += y * darkness; red += data[index] * darkness; green += data[index + 1] * darkness; blue += data[index + 2] * darkness; }
+        if (data[index + 3] > 10 && darkness > 24) { total += darkness; yTotal += y * darkness; red += data[index] * darkness; green += data[index + 1] * darkness; blue += data[index + 2] * darkness; }
       }
       if (!total) return;
       const y = yTotal / total;
@@ -220,7 +220,7 @@ export default function MaakEenRouwdier() {
         const y = Math.min(height - 1, Math.floor((band / bands) * height));
         const index = (y * width + x) * 4;
         const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
-        if (darkness > 28) {
+        if (data[index + 3] > 10 && darkness > 28) {
           const colour = `#${data[index].toString(16).padStart(2, "0")}${data[index + 1].toString(16).padStart(2, "0")}${data[index + 2].toString(16).padStart(2, "0")}`;
           addTone(column * step, step, frequencyForHeight(y, height), Math.min(.07, darkness / 2550), waveformForColour(colour));
         }
