@@ -10,6 +10,7 @@ type SharingChoice = "take" | "online" | "here" | "future";
 type SonificationMode = "tone" | "score";
 type SonificationStyle = "quiet" | "warm" | "clear";
 type SonificationInstrument = "string_ensemble_1" | "acoustic_grand_piano" | "acoustic_guitar_nylon" | "flute" | "synth";
+type DrawingThickness = "fine" | "regular" | "broad";
 type SoundfontPlayer = { play: (note: string, when?: number, options?: { duration?: number; attack?: number; release?: number; gain?: number }) => unknown };
 type SoundfontLibrary = { instrument: (context: BaseAudioContext, instrument: string) => Promise<SoundfontPlayer> };
 
@@ -47,7 +48,12 @@ const aiForms: Array<{ id: AiForm; title: string; text: string }> = [
   { id: "motion", title: "Beweging", text: "Alleen zichtbaar wanneer iemand het rouwdier opent." },
 ];
 
-const drawingColours = ["#2e2b26", "#b5533c", "#486f92", "#667f55", "#b17b46", "#81556f"];
+const drawingColours = ["#2e2b26", "#b5533c", "#c98270", "#486f92", "#6f9bb2", "#667f55", "#91a07b", "#b17b46", "#c5a26d", "#81556f", "#af7f98"];
+const drawingThicknesses: Array<{ id: DrawingThickness; title: string; width: number }> = [
+  { id: "fine", title: "fijn", width: 2 },
+  { id: "regular", title: "gewoon", width: 4 },
+  { id: "broad", title: "breed", width: 8 },
+];
 const sonificationStyles: Array<{ id: SonificationStyle; title: string; text: string; waveform: OscillatorType; baseMidi: number; scale: number[] }> = [
   { id: "quiet", title: "laag en rustig", text: "een zachte, lage klank", waveform: "sine", baseMidi: 45, scale: [0, 3, 5, 7, 10] },
   { id: "warm", title: "warm en rond", text: "iets voller, zonder scherp te worden", waveform: "triangle", baseMidi: 48, scale: [0, 2, 5, 7, 9] },
@@ -82,6 +88,7 @@ export default function MaakEenRouwdier() {
   const [hasAiConsent, setHasAiConsent] = useState(false);
   const [drawingDataUrl, setDrawingDataUrl] = useState("");
   const [drawingColour, setDrawingColour] = useState(drawingColours[0]);
+  const [drawingThickness, setDrawingThickness] = useState<DrawingThickness>("regular");
   const [liveDrawingSound, setLiveDrawingSound] = useState(false);
   const [sonificationMode, setSonificationMode] = useState<SonificationMode>("tone");
   const [sonificationStyle, setSonificationStyle] = useState<SonificationStyle>("quiet");
@@ -163,10 +170,20 @@ export default function MaakEenRouwdier() {
 
   const midiToFrequency = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
   const midiToNoteName = (midi: number) => `${["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][midi % 12]}${Math.floor(midi / 12) - 1}`;
-  const frequencyForHeight = (y: number, height = 720) => {
+  const midiForHeight = (y: number, height: number, baseMidi: number, scale: number[]) => {
     const position = Math.max(0, Math.min(1, (height - y) / height));
-    const degree = Math.round(position * (selectedSonificationStyle.scale.length + 2));
-    return midiToFrequency(selectedSonificationStyle.baseMidi + selectedSonificationStyle.scale[degree % selectedSonificationStyle.scale.length] + Math.floor(degree / selectedSonificationStyle.scale.length) * 12);
+    const expandedScale = [...scale, ...scale.map((interval) => interval + 12), scale[0] + 24];
+    const degree = Math.round(position * (expandedScale.length - 1));
+    return baseMidi + expandedScale[degree];
+  };
+  const selectedThickness = drawingThicknesses.find((thickness) => thickness.id === drawingThickness) || drawingThicknesses[1];
+  const soundCharacterForThickness = () => {
+    if (drawingThickness === "fine") return { gain: .76, duration: .72, release: .7 };
+    if (drawingThickness === "broad") return { gain: 1.15, duration: 1.12, release: 1.15 };
+    return { gain: 1, duration: .9, release: .9 };
+  };
+  const frequencyForHeight = (y: number, height = 720) => {
+    return midiToFrequency(midiForHeight(y, height, selectedSonificationStyle.baseMidi, selectedSonificationStyle.scale));
   };
   const playLiveDrawingSound = (point: { x: number; y: number }) => {
     if ((!liveDrawingSound && !modes.includes("sounddraw")) || Date.now() - lastLiveSoundAt.current < 320) return;
@@ -182,15 +199,15 @@ export default function MaakEenRouwdier() {
     const liveGain = sonificationStyle === "quiet" ? .19 : sonificationStyle === "clear" ? .24 : .28;
     const play = (instruments: SoundfontPlayer[]) => {
       if (!drawing.current) return;
-      const y = Math.max(0, Math.min(1, 1 - point.y / 720));
       const scale = [0, 3, 5, 7, 10];
-      const degree = Math.max(0, Math.min(scale.length - 1, Math.round(y * (scale.length - 1))));
-      const note = midiToNoteName(liveBaseMidi + scale[degree]);
-      const duration = sonificationStyle === "quiet" ? .9 : .72;
-      const release = sonificationStyle === "quiet" ? .5 : .36;
-      instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack: .1, release, gain: liveGain / instruments.length }));
+      const note = midiToNoteName(midiForHeight(point.y, 720, liveBaseMidi, scale));
+      const thicknessCharacter = soundCharacterForThickness();
+      const duration = (sonificationStyle === "quiet" ? .9 : .72) * thicknessCharacter.duration;
+      const release = (sonificationStyle === "quiet" ? .5 : .36) * thicknessCharacter.release;
+      const gain = liveGain * thicknessCharacter.gain;
+      instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack: .1, release, gain: gain / instruments.length }));
       if (modes.includes("sounddraw") && soundDrawingStartedAt.current !== null) {
-        soundDrawingEvents.current.push({ note, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, release, gain: liveGain });
+        soundDrawingEvents.current.push({ note, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, release, gain });
         setSoundDrawingEventCount(soundDrawingEvents.current.length);
       }
     };
@@ -209,7 +226,7 @@ export default function MaakEenRouwdier() {
     const rect = canvas.getBoundingClientRect();
     const point = { x: (event.clientX - rect.left) * (canvas.width / rect.width), y: (event.clientY - rect.top) * (canvas.height / rect.height) };
     context.strokeStyle = drawingColour;
-    context.lineWidth = 3.5;
+    context.lineWidth = selectedThickness.width;
     context.lineCap = "round";
     context.lineJoin = "round";
     if (lastPoint.current) {
@@ -665,7 +682,7 @@ export default function MaakEenRouwdier() {
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
-      {(mode === "draw" || mode === "sounddraw") && <>{mode === "sounddraw" && <div className="sound-controls"><p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p><div className="drawing-sound-area"><p>Welke klank wil je tekenen?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Welke instrumentklanken wil je horen? <span>maximaal twee</span></p><div className="drawing-sound-options">{sonificationInstruments.map((instrument) => <button type="button" key={instrument.id} className={sonificationInstrumentsSelected.includes(instrument.id) ? "is-selected" : ""} onClick={() => toggleSonificationInstrument(instrument.id)}><strong>{instrument.title}</strong><span>{instrument.text}</span></button>)}</div></div></div>}<div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><div className="drawing-area">
+      {(mode === "draw" || mode === "sounddraw") && <>{mode === "sounddraw" && <div className="sound-controls"><p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p><div className="drawing-sound-area"><p>Welke klank wil je tekenen?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Welke instrumentklanken wil je horen? <span>maximaal twee</span></p><div className="drawing-sound-options">{sonificationInstruments.map((instrument) => <button type="button" key={instrument.id} className={sonificationInstrumentsSelected.includes(instrument.id) ? "is-selected" : ""} onClick={() => toggleSonificationInstrument(instrument.id)}><strong>{instrument.title}</strong><span>{instrument.text}</span></button>)}</div></div></div>}<div className="drawing-tools"><div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><div className="drawing-thicknesses" aria-label="Kies lijndikte">{drawingThicknesses.map((thickness) => <button type="button" key={thickness.id} className={drawingThickness === thickness.id ? "is-selected" : ""} onClick={() => setDrawingThickness(thickness.id)}><span style={{ "--stroke-width": `${thickness.width}px` } as React.CSSProperties} aria-hidden="true" />{thickness.title}</button>)}</div></div><div className="drawing-area">
         <canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
         <button type="button" className="clear-button" onClick={clearDrawing}>wis tekening</button>
       </div>{mode === "sounddraw" && soundDrawingEventCount > 0 && <div className="drawing-result-controls">

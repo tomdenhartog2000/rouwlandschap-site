@@ -476,9 +476,14 @@ body:has(.admin-page) {
 .drawing-area { margin-top: 12px; overflow: hidden; background: #fffdf8; border: 1px solid #bcb4a7; border-radius: 3px; }
 .drawing-area canvas { width: 100%; height: auto; aspect-ratio: 1; background: #fffdf8; }
 .clear-button { color: #2e2b26; background: #f7f4ec; border: 1px solid #bcb4a7; }
-.drawing-colours { display: flex; gap: 9px; margin: 18px 0 0; align-items: center; }
+.drawing-tools { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 20px; margin-top: 18px; }
+.drawing-colours { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .drawing-colours button { width: 24px; height: 24px; padding: 0; background: var(--drawing-colour); border: 1px solid rgba(46, 43, 38, .28); border-radius: 50%; }
 .drawing-colours button.is-selected { outline: 2px solid #2e2b26; outline-offset: 3px; }
+.drawing-thicknesses { display: flex; gap: 6px; align-items: center; }
+.drawing-thicknesses button { display: inline-flex; gap: 6px; align-items: center; padding: 6px 8px; color: #6b655b; background: transparent; border: 1px solid #bcb4a7; border-radius: 3px; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
+.drawing-thicknesses button.is-selected { color: #2e2b26; border-color: #2e2b26; background: #fffdf8; }
+.drawing-thicknesses span { display: block; width: 16px; height: var(--stroke-width); background: currentColor; border-radius: 999px; }
 .live-sound-choice { display: flex; gap: 9px; align-items: center; margin: 0; color: #6b655b; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
 .live-sound-choice input { width: 17px; height: 17px; accent-color: #2e2b26; }
 .drawing-sound-area { display: grid; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #d8d1c5; }
