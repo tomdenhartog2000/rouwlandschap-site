@@ -9,6 +9,7 @@ export type LandscapeContribution = {
   title: string;
   description: string;
   kind: string;
+  aiImage: string;
   images: string[];
   drawing: string;
   audio: string;
@@ -17,6 +18,7 @@ export type LandscapeContribution = {
   referenceLink: string;
   motion: string;
   landscape: string;
+  sharing: "online" | "here" | "future";
   createdAt: number;
 };
 

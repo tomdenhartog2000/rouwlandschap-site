@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     text: row.textValue,
     reference: row.reference,
     referenceLink: row.referenceLink,
+    sharing: row.sharing === "here" || row.sharing === "future" ? row.sharing : "online",
     status: row.status,
     createdAt: row.createdAt,
     attachments: readAttachments(row.attachmentsJson).map((item) => ({ ...item, url: mediaUrl(row.id, item.name) })),

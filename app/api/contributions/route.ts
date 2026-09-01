@@ -44,7 +44,8 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
     title: row.title,
     description: row.description,
     kind: row.kind,
-    images: attachments.filter((item) => item.role === "photo" || item.role === "ai").map((item) => mediaUrl(row.id, item.name)),
+    aiImage: attachments.find((item) => item.role === "ai") ? mediaUrl(row.id, attachments.find((item) => item.role === "ai")!.name) : "",
+    images: attachments.filter((item) => item.role === "photo").map((item) => mediaUrl(row.id, item.name)),
     drawing: attachments.find((item) => item.role === "drawing") ? mediaUrl(row.id, attachments.find((item) => item.role === "drawing")!.name) : "",
     audio: attachments.find((item) => item.role === "audio") ? mediaUrl(row.id, attachments.find((item) => item.role === "audio")!.name) : "",
     text: row.textValue,
@@ -52,6 +53,7 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
     referenceLink: row.referenceLink,
     motion: row.motion,
     landscape: row.landscape,
+    sharing: row.sharing === "here" || row.sharing === "future" ? row.sharing : "online",
     createdAt: row.createdAt,
   };
 }
@@ -115,6 +117,8 @@ export async function POST(request: Request) {
     }
     const requestedMotion = stringField(data, "motion", 24);
     const motion = requestedMotion === "breathe" || requestedMotion === "heartbeat" || requestedMotion === "drift" || requestedMotion === "sway" ? requestedMotion : "";
+    const requestedSharing = stringField(data, "sharing", 24);
+    const sharing = requestedSharing === "here" || requestedSharing === "future" ? requestedSharing : "online";
     const landscape = (await activeLandscape()).id;
     const [row] = await getDb().insert(contributions).values({
       id,
@@ -127,6 +131,7 @@ export async function POST(request: Request) {
       motion,
       attachmentsJson: JSON.stringify(attachments),
       landscape,
+      sharing,
       status: "visible",
       createdAt: now,
     }).returning();

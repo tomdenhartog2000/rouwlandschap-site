@@ -13,6 +13,7 @@ export const contributions = sqliteTable(
     motion: text("motion").notNull().default(""),
     attachmentsJson: text("attachments_json").notNull().default("[]"),
     landscape: text("landscape").notNull().default("test"),
+    sharing: text("sharing").notNull().default("online"),
     status: text("status").notNull().default("visible"),
     createdAt: integer("created_at").notNull(),
   },
