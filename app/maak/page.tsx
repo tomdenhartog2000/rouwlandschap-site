@@ -36,7 +36,7 @@ const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string
   { id: "write", title: "Schrijven", text: "Een woord, herinnering of iets dat nog geen vorm heeft.", symbol: "Aa" },
   { id: "photo", title: "Foto toevoegen", text: "Een beeld dat je al bij je hebt, of hier maakt.", symbol: "camera" },
   { id: "draw", title: "Tekenen", text: "Een spoor, schets of vorm die je hier maakt.", symbol: "〰" },
-  { id: "sounddraw", title: "Geluid tekenen", text: "Teken een klank, zonder een instrument te hoeven spelen.", symbol: "⌁" },
+  { id: "sounddraw", title: "Geluid maken", text: "Teken een klank, zonder een instrument te hoeven spelen.", symbol: "⌁" },
   { id: "voice", title: "Geluidsopname", text: "Een stem, klank of moment van geluid.", symbol: "microphone" },
   { id: "reference", title: "Aanwijzen", text: "Een liedje, tekst, gezegde of plek die al bestaat.", symbol: "↗" },
 ];
@@ -87,7 +87,7 @@ export default function MaakEenRouwdier() {
   const [sonificationStyle, setSonificationStyle] = useState<SonificationStyle>("quiet");
   const [sonificationInstrument, setSonificationInstrument] = useState<SonificationInstrument>("string_ensemble_1");
   const [sonificationUrl, setSonificationUrl] = useState("");
-  const [keepSoundDrawing, setKeepSoundDrawing] = useState(true);
+  const [keepSoundDrawing, setKeepSoundDrawing] = useState(false);
   const [soundDrawingEventCount, setSoundDrawingEventCount] = useState(0);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiImageDataUrl, setAiImageDataUrl] = useState("");
@@ -664,19 +664,17 @@ export default function MaakEenRouwdier() {
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => setReferenceLink(event.target.value)} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label><p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
-      {(mode === "draw" || mode === "sounddraw") && <div className="drawing-area">
-        {mode === "sounddraw" && <><p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p><label className="live-sound-choice"><input type="checkbox" checked={keepSoundDrawing} onChange={(event) => setKeepSoundDrawing(event.target.checked)} />bewaar ook het tekenbeeld</label></>}
+      {(mode === "draw" || mode === "sounddraw") && <>{mode === "sounddraw" && <p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p>}<div className="drawing-area">
         <canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
         <button type="button" className="clear-button" onClick={clearDrawing}>wis tekening</button>
         <div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div>
         {mode === "draw" && <label className="live-sound-choice"><input type="checkbox" checked={liveDrawingSound} onChange={(event) => setLiveDrawingSound(event.target.checked)} />laat tijdens het tekenen klank horen</label>}
-        {((mode === "sounddraw" && soundDrawingEventCount > 0) || (mode === "draw" && drawingDataUrl)) && <div className="drawing-sound-area">
+        {mode === "sounddraw" && soundDrawingEventCount > 0 && <div className="drawing-sound-area">
           <p>Welke klank past er nu bij?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div>
           <p>Welke instrumentklank wil je horen?</p><div className="drawing-sound-options">{sonificationInstruments.map((instrument) => <button type="button" key={instrument.id} className={sonificationInstrument === instrument.id ? "is-selected" : ""} onClick={() => setSonificationInstrument(instrument.id)}><strong>{instrument.title}</strong><span>{instrument.text}</span></button>)}</div>
-          {mode === "draw" && <><p>Wil je één klank maken, of een toon die rustig door de tekening heen beweegt?</p><div className="drawing-sound-options"><button type="button" className={sonificationMode === "tone" ? "is-selected" : ""} onClick={() => setSonificationMode("tone")}>één klank</button><button type="button" className={sonificationMode === "score" ? "is-selected" : ""} onClick={() => setSonificationMode("score")}>vloeiende toon</button></div></>}
-          <button type="button" className="secondary-button" onClick={() => void createSonification()}>{sonificationUrl ? "maak opnieuw" : mode === "sounddraw" ? "bewaar en beluister je geluid" : "beluister je tekening"}</button>{sonificationUrl && <audio controls src={sonificationUrl}>Je browser kan deze klank niet afspelen.</audio>}<small>De eerste instrumentklank vraagt kort internet. Daarna wordt de klank uit je tekening gemaakt.</small>
+          <button type="button" className="secondary-button" onClick={() => void createSonification()}>{sonificationUrl ? "maak opnieuw" : "bewaar en beluister je geluid"}</button>{sonificationUrl && <><audio controls src={sonificationUrl}>Je browser kan deze klank niet afspelen.</audio><label className="live-sound-choice"><input type="checkbox" checked={keepSoundDrawing} onChange={(event) => { setKeepSoundDrawing(event.target.checked); if (canvasRef.current) setDrawingDataUrl(event.target.checked ? canvasRef.current.toDataURL("image/png") : ""); }} />bewaar ook het tekenbeeld</label></>}<small>De eerste instrumentklank vraagt kort internet. Daarna wordt de klank uit je tekening gemaakt.</small>
         </div>}
-      </div>}
+      </div></>}
       {mode === "voice" && <div className="voice-area">{!audioUrl && <p>Je kunt je opname eerst hier beluisteren.</p>}{audioUrl && <audio controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}<button type="button" className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin opname"}</button>{microphoneError && <small>De microfoon is niet beschikbaar. Je kunt ook schrijven, tekenen of een foto kiezen.</small>}</div>}
     </div>;
   };
