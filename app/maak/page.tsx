@@ -547,109 +547,76 @@ export default function MaakEenRouwdier() {
   };
   const downloadCard = async () => {
     const canvas = document.createElement("canvas");
-    const width = 900;
-    const padding = 54;
-    const contentWidth = width - padding * 2;
+    const width = 720;
+    const inset = 16;
+    const padding = 38;
+    const contentWidth = width - inset * 2 - padding * 2;
+    const mediaSource = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
+    const media = mediaSource ? await new Promise<HTMLImageElement | null>((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = mediaSource;
+    }) : null;
+    const mediaHeight = media ? Math.round(contentWidth * (media.height / media.width)) : savedAudioUrl ? 140 : 0;
     canvas.width = width;
     canvas.height = 100;
     let context = canvas.getContext("2d");
     if (!context) return;
-    context.font = "38px Arial, sans-serif";
+    context.font = "400 26px Arial, sans-serif";
     const titleLines = wrapCanvasText(context, visibleTitle, contentWidth).slice(0, 3);
-    const mediaSource = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
-    const mediaHeight = mediaSource ? contentWidth : audioUrl || words ? 270 : 0;
-    const mediaTop = 160 + Math.max(1, titleLines.length) * 48;
-    const bodyText = !mediaSource && words ? words : visibleDescription;
-    context.font = "27px Arial, sans-serif";
-    const bodyLines = bodyText ? wrapCanvasText(context, bodyText, contentWidth - 42).slice(0, 7) : [];
-    const descriptionTop = mediaTop + (mediaHeight ? mediaHeight + 34 : 12);
-    const footerTop = descriptionTop + (bodyLines.length ? bodyLines.length * 38 + 42 : 28);
-    const height = Math.max(720, footerTop + 156 + padding);
+    context.font = "17px Arial, sans-serif";
+    const bodyText = visibleDescription || (!media && words ? words : "");
+    const bodyLines = bodyText ? wrapCanvasText(context, bodyText, contentWidth).slice(0, 7) : [];
+    const top = inset + padding;
+    const titleTop = top + 47;
+    const mediaTop = titleTop + titleLines.length * 34 + 24;
+    const bodyTop = mediaTop + mediaHeight + (mediaHeight ? 25 : 0);
+    const footerTop = bodyTop + bodyLines.length * 26 + (bodyLines.length ? 28 : 10);
+    const height = Math.max(500, footerTop + 118 + inset + padding);
     canvas.height = height;
     context = canvas.getContext("2d");
     if (!context) return;
     context.fillStyle = "#f7f4ec";
     context.fillRect(0, 0, width, height);
     context.fillStyle = "#fffdf8";
-    context.fillRect(20, 20, width - 40, height - 40);
+    context.fillRect(inset, inset, width - inset * 2, height - inset * 2);
     context.strokeStyle = "#d8d1c5";
-    context.lineWidth = 1.5;
-    context.strokeRect(20, 20, width - 40, height - 40);
+    context.lineWidth = 1;
+    context.strokeRect(inset + .5, inset + .5, width - inset * 2 - 1, height - inset * 2 - 1);
     context.fillStyle = "#6b655b";
-    context.font = "20px Arial, sans-serif";
-    context.fillText("rouwdier", padding, 76);
+    context.font = "14px Arial, sans-serif";
+    context.fillText("rouwdier", inset + padding, top);
     context.fillStyle = "#2e2b26";
-    context.font = "38px Arial, sans-serif";
-    titleLines.forEach((line, index) => context.fillText(line, padding, 130 + index * 48));
-    if (mediaSource) {
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const item = new Image();
-        item.onload = () => resolve(item);
-        item.onerror = () => reject(new Error("Afbeelding kon niet worden geladen."));
-        item.src = mediaSource;
-      }).catch(() => null);
-      if (image) {
-        const scale = Math.min(contentWidth / image.width, mediaHeight / image.height);
-        const imageWidth = image.width * scale;
-        const imageHeight = image.height * scale;
-        const imageX = padding + (contentWidth - imageWidth) / 2;
-        const imageY = mediaTop + (mediaHeight - imageHeight) / 2;
-        context.fillStyle = "#ebe6dc";
-        context.fillRect(padding, mediaTop, contentWidth, mediaHeight);
-        context.drawImage(image, imageX, imageY, imageWidth, imageHeight);
-      }
-    } else if (audioUrl) {
+    context.font = "400 26px Arial, sans-serif";
+    titleLines.forEach((line, index) => context?.fillText(line, inset + padding, titleTop + index * 34));
+    if (media) context.drawImage(media, inset + padding, mediaTop, contentWidth, mediaHeight);
+    if (!media && savedAudioUrl) {
       context.fillStyle = "#ebe6dc";
-      context.fillRect(padding, mediaTop, contentWidth, mediaHeight);
-      context.fillStyle = "#2e2b26";
-      context.font = "27px Arial, sans-serif";
-      context.fillText("geluidsopname", padding + 30, mediaTop + 58);
-      context.strokeStyle = "#6b655b";
-      context.lineWidth = 5;
-      for (let index = 0; index < 22; index += 1) {
-        const x = padding + 32 + index * 34;
-        const waveHeight = 20 + ((index * 31) % 92);
-        context.beginPath();
-        context.moveTo(x, mediaTop + 170 - waveHeight / 2);
-        context.lineTo(x, mediaTop + 170 + waveHeight / 2);
-        context.stroke();
-      }
-    } else if (words) {
-      context.fillStyle = "#ebe6dc";
-      context.fillRect(padding, mediaTop, contentWidth, mediaHeight);
-      context.fillStyle = "#2e2b26";
-      context.font = "27px Arial, sans-serif";
-      wrapCanvasText(context, words, contentWidth - 42).slice(0, 6).forEach((line, index) => context.fillText(line, padding + 22, mediaTop + 58 + index * 38));
+      context.fillRect(inset + padding, mediaTop, contentWidth, mediaHeight);
+      context.fillStyle = "#6b655b";
+      context.font = "16px Arial, sans-serif";
+      context.fillText("geluidsopname", inset + padding + 18, mediaTop + 32);
     }
-    if (visibleDescription && (mediaSource || audioUrl || words !== visibleDescription)) {
-      context.fillStyle = "#2e2b26";
-      context.font = "27px Arial, sans-serif";
-      wrapCanvasText(context, visibleDescription, contentWidth).slice(0, 6).forEach((line, index) => context.fillText(line, padding, descriptionTop + index * 38));
-    }
+    context.fillStyle = "#2e2b26";
+    context.font = "17px Arial, sans-serif";
+    bodyLines.forEach((line, index) => context?.fillText(line, inset + padding, bodyTop + index * 26));
     context.strokeStyle = "#d8d1c5";
-    context.lineWidth = 1.5;
     context.beginPath();
-    context.moveTo(padding, footerTop - 18);
-    context.lineTo(width - padding, footerTop - 18);
+    context.moveTo(inset + padding, footerTop);
+    context.lineTo(width - inset - padding, footerTop);
     context.stroke();
     context.fillStyle = "#6b655b";
-    context.font = "20px Arial, sans-serif";
-    context.fillText("Meer weten over rouwdieren?", padding, footerTop + 25);
-    context.fillText("Scan de QR-code.", padding, footerTop + 53);
+    context.font = "14px Arial, sans-serif";
+    context.fillText("Meer weten over rouwdieren?", inset + padding, footerTop + 26);
+    context.fillText("Scan de QR-code.", inset + padding, footerTop + 47);
     const qrUrl = `${window.location.origin}/over-rouwdieren`;
     const qrImage = await new Promise<HTMLImageElement | null>((resolve) => {
-      QRCode.toDataURL(qrUrl, { width: 150, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } })
-        .then((source) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = () => resolve(null);
-          image.src = source;
-        })
-        .catch(() => resolve(null));
+      QRCode.toDataURL(qrUrl, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
+        const image = new Image(); image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = source;
+      }).catch(() => resolve(null));
     });
-    if (qrImage) {
-      context.drawImage(qrImage, width - padding - 112, footerTop - 4, 112, 112);
-    }
+    if (qrImage) context.drawImage(qrImage, width - inset - padding - 84, footerTop + 13, 84, 84);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) return;
     const safeTitle = visibleTitle.toLocaleLowerCase("nl-NL").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "rouwdier";
