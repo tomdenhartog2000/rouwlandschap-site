@@ -483,12 +483,15 @@ body:has(.admin-page) {
 .drawing-thicknesses { display: flex; gap: 6px; align-items: center; }
 .drawing-thicknesses button { display: inline-flex; gap: 6px; align-items: center; padding: 6px 8px; color: #6b655b; background: transparent; border: 1px solid #bcb4a7; border-radius: 3px; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
 .drawing-thicknesses button.is-selected { color: #2e2b26; border-color: #2e2b26; background: #fffdf8; }
-.drawing-thicknesses span { display: block; width: 16px; height: var(--stroke-width); background: currentColor; border-radius: 999px; }
+.drawing-thicknesses span, .drawing-thicknesses strong { display: block; width: 16px; height: var(--stroke-width); background: currentColor; border-radius: 999px; }
 .live-sound-choice { display: flex; gap: 9px; align-items: center; margin: 0; color: #6b655b; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
 .live-sound-choice input { width: 17px; height: 17px; accent-color: #2e2b26; }
 .drawing-sound-area { display: grid; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #d8d1c5; }
 .sound-controls { display: grid; gap: 0; }
 .sound-controls .lead { margin-bottom: 0; }
+.sound-activation { display: grid; gap: 8px; margin-top: 16px; padding: 12px 0 0; }
+.sound-activation p { margin: 0; color: #6b655b; font-size: 14px; }
+.sound-activation .secondary-button { justify-self: start; }
 .drawing-result-controls { display: grid; gap: 12px; margin-top: 16px; }
 .drawing-result-controls small { color: #6b655b; font-size: 13px; }
 .drawing-result-controls audio { width: 100%; }
