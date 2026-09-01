@@ -15,7 +15,7 @@ type SoundfontPlayer = { play: (note: string, when?: number, options?: { duratio
 type SoundfontLibrary = { instrument: (context: BaseAudioContext, instrument: string) => Promise<SoundfontPlayer> };
 
 declare global {
-  interface Window { Soundfont?: SoundfontLibrary; }
+  interface Window { Soundfont?: SoundfontLibrary; webkitAudioContext?: typeof AudioContext; }
 }
 
 let soundfontScript: Promise<SoundfontLibrary> | null = null;
@@ -188,7 +188,7 @@ export default function MaakEenRouwdier() {
   const playLiveDrawingSound = (point: { x: number; y: number }) => {
     if ((!liveDrawingSound && !modes.includes("sounddraw")) || Date.now() - lastLiveSoundAt.current < 320) return;
     lastLiveSoundAt.current = Date.now();
-    const AudioContextConstructor = window.AudioContext;
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextConstructor) return;
     const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
     liveAudioContextRef.current = audioContext;
