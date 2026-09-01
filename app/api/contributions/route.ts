@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Voeg eerst iets toe voordat je rouwdier kan worden gedeeld." }, { status: 400 });
     }
     const requestedMotion = stringField(data, "motion", 24);
-    const motion = requestedMotion === "breathe" || requestedMotion === "drift" || requestedMotion === "sway" ? requestedMotion : "";
+    const motion = requestedMotion === "breathe" || requestedMotion === "heartbeat" || requestedMotion === "drift" || requestedMotion === "sway" ? requestedMotion : "";
     const landscape = (await activeLandscape()).id;
     const [row] = await getDb().insert(contributions).values({
       id,

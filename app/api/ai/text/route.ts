@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (!text && !(mode === "motion" && direction)) return Response.json({ error: "Er zijn nog geen woorden om mee te werken." }, { status: 400 });
     const instructions = mode === "text"
       ? "Je helpt iemand alleen hun eigen Nederlandse woorden te ordenen. Geef uitsluitend een herziene versie van de tekst terug. Bewaar feiten, toon, twijfel en eigen formuleringen. Voeg geen herinneringen, troost, uitleg, metaforen of nieuwe betekenis toe. Corrigeer alleen helderheid, volgorde, spelling en interpunctie. Als de tekst al helder is, geef hem vrijwel ongewijzigd terug."
-      : "Kies één subtiele bewegingswijze voor een digitaal rouwdier op basis van wat de bezoeker heeft ingebracht en, als die er is, de wens voor de beweging. Antwoord uitsluitend met één van deze woorden: adem, drijf, wieg. Kies niets dramatisch of opvallends.";
+      : "Kies één subtiele bewegingswijze voor een digitaal rouwdier op basis van wat de bezoeker heeft ingebracht en, als die er is, de wens voor de beweging. Antwoord uitsluitend met één van deze woorden: adem, hartslag, drijf, wieg. Kies niets dramatisch of opvallends.";
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const value = outputText(result).trim();
     if (!response.ok || !value) return Response.json({ error: result.error?.message || "De AI-versie kon niet worden gemaakt." }, { status: response.status || 502 });
     if (mode === "motion") {
-      const motion = value.toLowerCase().includes("drijf") ? "drift" : value.toLowerCase().includes("wieg") ? "sway" : "breathe";
+      const motion = value.toLowerCase().includes("hartslag") ? "heartbeat" : value.toLowerCase().includes("drijf") ? "drift" : value.toLowerCase().includes("wieg") ? "sway" : "breathe";
       return Response.json({ motion });
     }
     return Response.json({ text: value.slice(0, 4_000) });
