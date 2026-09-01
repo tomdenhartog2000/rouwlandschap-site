@@ -475,6 +475,18 @@ body:has(.admin-page) {
 .upload-spark, .private-spark, .completion-spark, .make-mark { background: #6b655b; box-shadow: none; }
 .drawing-area canvas { width: 100%; height: auto; aspect-ratio: 1; background: #fffdf8; }
 .clear-button { color: #2e2b26; background: #f7f4ec; border: 1px solid #bcb4a7; }
+.drawing-colours { display: flex; gap: 9px; margin: 13px 0 10px; align-items: center; }
+.drawing-colours button { width: 24px; height: 24px; padding: 0; background: var(--drawing-colour); border: 1px solid rgba(46, 43, 38, .28); border-radius: 50%; }
+.drawing-colours button.is-selected { outline: 2px solid #2e2b26; outline-offset: 3px; }
+.live-sound-choice { display: flex; gap: 9px; align-items: center; margin: 0; color: #6b655b; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
+.live-sound-choice input { width: 17px; height: 17px; accent-color: #2e2b26; }
+.drawing-sound-area { display: grid; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #d8d1c5; }
+.drawing-sound-area p { margin: 0; color: #2e2b26; font-size: 15px; line-height: 1.45; }
+.drawing-sound-area small { color: #6b655b; font-size: 13px; }
+.drawing-sound-area audio { width: 100%; }
+.drawing-sound-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.drawing-sound-options button { padding: 8px 11px; color: #2e2b26; background: transparent; border: 1px solid #bcb4a7; border-radius: 3px; font: 14px "Atkinson Hyperlegible", Arial, sans-serif; }
+.drawing-sound-options button.is-selected { color: #f7f4ec; background: #2e2b26; border-color: #2e2b26; }
 .voice-area p, .upload-area small, .voice-area small { color: #6b655b; }
 .record-button { color: #2e2b26; background: transparent; border: 1px solid #bcb4a7; }
 .record-button.is-recording { color: #2e2b26; background: #ebe6dc; border-color: #6b655b; }

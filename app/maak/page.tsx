@@ -7,6 +7,7 @@ type InputMode = "write" | "photo" | "draw" | "voice" | "reference";
 type AiPath = "none" | "together" | "translate";
 type AiForm = "image" | "text" | "motion";
 type SharingChoice = "take" | "online" | "here" | "future";
+type SonificationMode = "tone" | "score";
 
 const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string }> = [
   { id: "write", title: "Schrijven", text: "Een woord, herinnering of iets dat nog geen vorm heeft.", symbol: "Aa" },
@@ -21,6 +22,8 @@ const aiForms: Array<{ id: AiForm; title: string; text: string }> = [
   { id: "text", title: "Woorden", text: "Orden je eigen woorden, zonder nieuwe inhoud toe te voegen." },
   { id: "motion", title: "Beweging", text: "Alleen zichtbaar wanneer iemand het rouwdier opent." },
 ];
+
+const drawingColours = ["#2e2b26", "#b5533c", "#486f92", "#667f55", "#b17b46", "#81556f"];
 
 function firstUsefulLine(value: string) {
   return value.split("\n").map((line) => line.trim()).find(Boolean) ?? "";
@@ -42,6 +45,10 @@ export default function MaakEenRouwdier() {
   const [audioTranscript, setAudioTranscript] = useState("");
   const [hasAiConsent, setHasAiConsent] = useState(false);
   const [drawingDataUrl, setDrawingDataUrl] = useState("");
+  const [drawingColour, setDrawingColour] = useState(drawingColours[0]);
+  const [liveDrawingSound, setLiveDrawingSound] = useState(false);
+  const [sonificationMode, setSonificationMode] = useState<SonificationMode>("tone");
+  const [sonificationUrl, setSonificationUrl] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiImageDataUrl, setAiImageDataUrl] = useState("");
   const [aiTextResult, setAiTextResult] = useState("");
@@ -68,15 +75,19 @@ export default function MaakEenRouwdier() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
   const audioFileRef = useRef<File | null>(null);
+  const sonificationFileRef = useRef<File | null>(null);
+  const liveAudioContextRef = useRef<AudioContext | null>(null);
+  const lastLiveSoundAt = useRef(0);
 
   const titleSuggestion = firstUsefulLine(reference) || (modes.includes("write") ? firstUsefulLine(words).slice(0, 70) : "");
   const descriptionSuggestion = words || careReflection;
   const visibleTitle = title.trim() || titleSuggestion || "een rouwdier";
   const visibleDescription = cardDescription.trim();
   const hasAi = aiPath !== "none";
-  const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || careReflection.trim() || reference.trim() || referenceLink.trim() || photos.length || drawingDataUrl || audioUrl || title.trim() || cardDescription.trim());
+  const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || careReflection.trim() || reference.trim() || referenceLink.trim() || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
   const hasImageForm = aiFormsSelected.includes("image");
   const hasMotionForm = aiFormsSelected.includes("motion");
+  const savedAudioUrl = sonificationUrl || audioUrl;
   const motionPreviewImage = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
   const motionPreviewWords = words.trim() || reference.trim() || "jouw bijdrage";
   useEffect(() => {
@@ -95,13 +106,40 @@ export default function MaakEenRouwdier() {
     return visualForms.includes(form) ? visualForms.filter((item) => item !== form) : [...visualForms, form];
   });
 
+  const waveformForColour = (colour: string): OscillatorType => {
+    const value = colour.replace("#", "");
+    const red = Number.parseInt(value.slice(0, 2), 16);
+    const blue = Number.parseInt(value.slice(4, 6), 16);
+    return red - blue > 24 ? "sawtooth" : blue - red > 24 ? "sine" : "triangle";
+  };
+  const frequencyForHeight = (y: number, height = 720) => 220 + ((height - y) / height) * 440;
+  const playLiveDrawingSound = (point: { x: number; y: number }) => {
+    if (!liveDrawingSound || Date.now() - lastLiveSoundAt.current < 135) return;
+    lastLiveSoundAt.current = Date.now();
+    const AudioContextConstructor = window.AudioContext;
+    if (!AudioContextConstructor) return;
+    const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
+    liveAudioContextRef.current = audioContext;
+    void audioContext.resume();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+    oscillator.type = waveformForColour(drawingColour);
+    oscillator.frequency.setValueAtTime(frequencyForHeight(point.y), now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.035, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.14);
+  };
   const drawAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
     const rect = canvas.getBoundingClientRect();
     const point = { x: (event.clientX - rect.left) * (canvas.width / rect.width), y: (event.clientY - rect.top) * (canvas.height / rect.height) };
-    context.strokeStyle = "#2e2b26";
+    context.strokeStyle = drawingColour;
     context.lineWidth = 3.5;
     context.lineCap = "round";
     context.lineJoin = "round";
@@ -112,11 +150,12 @@ export default function MaakEenRouwdier() {
       context.stroke();
     }
     lastPoint.current = point;
+    playLiveDrawingSound(point);
   };
   const beginDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); drawAt(event); };
   const continueDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (drawing.current) drawAt(event); };
   const endDrawing = () => { drawing.current = false; lastPoint.current = null; if (canvasRef.current) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
-  const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); setDrawingDataUrl(""); };
+  const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); setDrawingDataUrl(""); setSonificationUrl(""); sonificationFileRef.current = null; };
   const addPhotos = async (files?: FileList | null) => {
     const selectedFiles = Array.from(files ?? []);
     const prepared = await Promise.all(selectedFiles.map((file) => new Promise<{ name: string; url: string; dataUrl: string }>((resolve) => {
@@ -127,6 +166,71 @@ export default function MaakEenRouwdier() {
     if (prepared.length) setPhotos((current) => [...current, ...prepared]);
   };
   const removePhoto = (url: string) => setPhotos((current) => current.filter((photo) => photo.url !== url));
+
+  const audioBufferToWav = (buffer: AudioBuffer) => {
+    const bytes = buffer.length * buffer.numberOfChannels * 2;
+    const view = new DataView(new ArrayBuffer(44 + bytes));
+    const write = (offset: number, value: string) => [...value].forEach((letter, index) => view.setUint8(offset + index, letter.charCodeAt(0)));
+    write(0, "RIFF"); view.setUint32(4, 36 + bytes, true); write(8, "WAVE"); write(12, "fmt ");
+    view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, buffer.numberOfChannels, true);
+    view.setUint32(24, buffer.sampleRate, true); view.setUint32(28, buffer.sampleRate * buffer.numberOfChannels * 2, true);
+    view.setUint16(32, buffer.numberOfChannels * 2, true); view.setUint16(34, 16, true); write(36, "data"); view.setUint32(40, bytes, true);
+    const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
+    let offset = 44;
+    for (let sample = 0; sample < buffer.length; sample += 1) for (const channel of channels) { view.setInt16(offset, Math.max(-1, Math.min(1, channel[sample])) * 0x7fff, true); offset += 2; }
+    return new Blob([view], { type: "audio/wav" });
+  };
+  const createSonification = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !drawingDataUrl || !window.OfflineAudioContext) return;
+    const pixels = canvas.getContext("2d", { willReadFrequently: true })?.getImageData(0, 0, canvas.width, canvas.height);
+    if (!pixels) return;
+    const seconds = sonificationMode === "score" ? 8 : 1.8;
+    const sampleRate = 22050;
+    const offline = new OfflineAudioContext(1, Math.ceil(sampleRate * seconds), sampleRate);
+    const addTone = (start: number, duration: number, frequency: number, volume: number, waveform: OscillatorType) => {
+      const oscillator = offline.createOscillator();
+      const gain = offline.createGain();
+      oscillator.type = waveform;
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(volume, start + Math.min(.035, duration / 3));
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + Math.max(.05, duration * .96));
+      oscillator.connect(gain).connect(offline.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration);
+    };
+    const { data } = pixels;
+    const { width, height } = canvas;
+    if (sonificationMode === "tone") {
+      let total = 0, yTotal = 0, red = 0, green = 0, blue = 0;
+      for (let y = 0; y < height; y += 8) for (let x = 0; x < width; x += 8) {
+        const index = (y * width + x) * 4;
+        const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
+        if (darkness > 24) { total += darkness; yTotal += y * darkness; red += data[index] * darkness; green += data[index + 1] * darkness; blue += data[index + 2] * darkness; }
+      }
+      if (!total) return;
+      const y = yTotal / total;
+      const colour = `#${Math.round(red / total).toString(16).padStart(2, "0")}${Math.round(green / total).toString(16).padStart(2, "0")}${Math.round(blue / total).toString(16).padStart(2, "0")}`;
+      addTone(0, seconds, frequencyForHeight(y, height), .09, waveformForColour(colour));
+    } else {
+      const columns = 48, bands = 7, step = seconds / columns;
+      for (let column = 0; column < columns; column += 1) for (let band = 0; band < bands; band += 1) {
+        const x = Math.min(width - 1, Math.floor((column / columns) * width));
+        const y = Math.min(height - 1, Math.floor((band / bands) * height));
+        const index = (y * width + x) * 4;
+        const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
+        if (darkness > 28) {
+          const colour = `#${data[index].toString(16).padStart(2, "0")}${data[index + 1].toString(16).padStart(2, "0")}${data[index + 2].toString(16).padStart(2, "0")}`;
+          addTone(column * step, step, frequencyForHeight(y, height), Math.min(.07, darkness / 2550), waveformForColour(colour));
+        }
+      }
+    }
+    const blob = audioBufferToWav(await offline.startRendering());
+    const file = new File([blob], "klank-van-de-tekening.wav", { type: "audio/wav" });
+    sonificationFileRef.current = file;
+    setSonificationUrl(URL.createObjectURL(blob));
+  };
 
   const startRecording = async () => {
     setMicrophoneError(false);
@@ -236,7 +340,7 @@ export default function MaakEenRouwdier() {
       data.set("title", visibleTitle);
       const hasAiEndProduct = Boolean(aiImageDataUrl);
       data.set("description", hasAiEndProduct ? visibleDescription : visibleDescription || words || careReflection);
-      data.set("kind", hasAiEndProduct ? "Beeld met AI" : modes.includes("voice") ? "Geluidsopname" : modes.includes("draw") ? "Tekening" : modes.includes("photo") ? "Foto" : modes.includes("reference") ? "Verwijzing" : "Tekst");
+      data.set("kind", hasAiEndProduct ? "Beeld met AI" : sonificationUrl ? "Tekening met klank" : modes.includes("voice") ? "Geluidsopname" : modes.includes("draw") ? "Tekening" : modes.includes("photo") ? "Foto" : modes.includes("reference") ? "Verwijzing" : "Tekst");
       if (aiMotion) data.set("motion", aiMotion);
       if (hasAiEndProduct) data.set("aiImage", await dataUrlToFile(aiImageDataUrl, "beeld-met-ai.png"));
       else {
@@ -245,7 +349,7 @@ export default function MaakEenRouwdier() {
         data.set("referenceLink", referenceLink);
         for (const [index, photo] of photos.entries()) data.append("photos", await dataUrlToFile(photo.dataUrl, photo.name || `foto-${index + 1}.jpg`));
         if (drawingDataUrl) data.set("drawing", await dataUrlToFile(drawingDataUrl, "tekening.png"));
-        if (audioFileRef.current) data.set("audio", audioFileRef.current);
+        if (sonificationFileRef.current || audioFileRef.current) data.set("audio", sonificationFileRef.current || audioFileRef.current as File);
       }
       const response = await fetch("/api/contributions", { method: "POST", body: data });
       const result = await response.json().catch(() => ({})) as { error?: string; contribution?: { id?: string } };
@@ -401,12 +505,12 @@ export default function MaakEenRouwdier() {
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => setReferenceLink(event.target.value)} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label><p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
-      {mode === "draw" && <div className="drawing-area"><canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} /><button type="button" className="clear-button" onClick={clearDrawing}>wis tekening</button></div>}
+      {mode === "draw" && <div className="drawing-area"><canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} /><button type="button" className="clear-button" onClick={clearDrawing}>wis tekening</button><div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><label className="live-sound-choice"><input type="checkbox" checked={liveDrawingSound} onChange={(event) => setLiveDrawingSound(event.target.checked)} />laat tijdens het tekenen klank horen</label>{drawingDataUrl && <div className="drawing-sound-area"><p>Wil je één klank maken, of je tekening als een kort klankspoor horen?</p><div className="drawing-sound-options"><button type="button" className={sonificationMode === "tone" ? "is-selected" : ""} onClick={() => setSonificationMode("tone")}>één klank</button><button type="button" className={sonificationMode === "score" ? "is-selected" : ""} onClick={() => setSonificationMode("score")}>een klankspoor</button></div><button type="button" className="secondary-button" onClick={() => void createSonification()}>{sonificationUrl ? "maak opnieuw" : "beluister je tekening"}</button>{sonificationUrl && <audio controls src={sonificationUrl}>Je browser kan deze klank niet afspelen.</audio>}<small>Deze klank wordt op jouw apparaat uit de tekening gemaakt.</small></div>}</div>}
       {mode === "voice" && <div className="voice-area">{!audioUrl && <p>Je kunt je opname eerst hier beluisteren.</p>}{audioUrl && <audio controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}<button type="button" className={`record-button ${isRecording ? "is-recording" : ""}`} onClick={isRecording ? stopRecording : startRecording}>{isRecording ? "stop opname" : audioUrl ? "neem opnieuw op" : "begin opname"}</button>{microphoneError && <small>De microfoon is niet beschikbaar. Je kunt ook schrijven, tekenen of een foto kiezen.</small>}</div>}
     </div>;
   };
 
-  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /> : <>{photos[0] && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && audioUrl && <div className="audio-cover"><span>geluidsopname</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !audioUrl && words && <p className="card-words">{words}</p>}{audioUrl && <audio className="card-audio" controls src={audioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{visibleDescription && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
+  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /> : <>{photos[0] && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !savedAudioUrl && words && <p className="card-words">{words}</p>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{visibleDescription && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
     {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Wat wil je meenemen?</h1><p className="lead">Een rouwdier kan beginnen bij iets kleins. Je kunt één vorm kiezen, of verschillende dingen samenbrengen.</p><div className="input-options">{inputs.map((input) => { const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
