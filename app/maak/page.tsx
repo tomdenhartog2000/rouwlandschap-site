@@ -130,7 +130,7 @@ export default function MaakEenRouwdier() {
   const liveInstrumentsRef = useRef<Map<string, SoundfontPlayer>>(new Map());
   const lastLiveSoundAt = useRef(0);
   const liveAudioUnlocked = useRef(false);
-  const soundDrawingEvents = useRef<Array<{ note: string; time: number; duration: number; release: number; gain: number }>>([]);
+  const soundDrawingEvents = useRef<Array<{ note: string; time: number; duration: number; attack: number; release: number; gain: number }>>([]);
   const soundDrawingStartedAt = useRef<number | null>(null);
 
   const titleSuggestion = firstUsefulLine(reference) || (modes.includes("write") ? firstUsefulLine(words).slice(0, 70) : "");
@@ -241,16 +241,17 @@ export default function MaakEenRouwdier() {
     const note = midiToNoteName(midiForHeight(point.y, 720, liveBaseMidi, scale));
     const thicknessCharacter = soundCharacterForThickness();
     const duration = (sonificationStyle === "quiet" ? .9 : .72) * thicknessCharacter.duration;
+    const attack = .36;
     const release = (sonificationStyle === "quiet" ? .5 : .36) * thicknessCharacter.release;
     const gain = liveGain * thicknessCharacter.gain;
     const recordSound = () => {
       if (modes.includes("sounddraw") && soundDrawingStartedAt.current !== null) {
-        soundDrawingEvents.current.push({ note, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, release, gain });
+        soundDrawingEvents.current.push({ note, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, attack, release, gain });
         setSoundDrawingEventCount(soundDrawingEvents.current.length);
       }
     };
     const play = (instruments: SoundfontPlayer[], shouldRecord = true) => {
-      instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack: .18, release, gain: gain / instruments.length }));
+      instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack, release, gain: gain / instruments.length }));
       if (shouldRecord) recordSound();
     };
     const startPlayback = () => {
@@ -394,7 +395,7 @@ export default function MaakEenRouwdier() {
     const soundfont = await loadSoundfont();
     const instruments = await Promise.all(sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth").map((instrument) => soundfont.instrument(offline, instrument)));
     if (!instruments.length) throw new Error("Er is geen instrumentklank gekozen.");
-    for (const event of soundDrawingEvents.current) instruments.forEach((instrument) => instrument.play(event.note, event.time + .03, { duration: event.duration, attack: .1, release: event.release, gain: event.gain / instruments.length }));
+    for (const event of soundDrawingEvents.current) instruments.forEach((instrument) => instrument.play(event.note, event.time + .03, { duration: event.duration, attack: event.attack, release: event.release, gain: event.gain / instruments.length }));
     await saveSonification(await offline.startRendering());
   };
   const createSonification = async () => {
