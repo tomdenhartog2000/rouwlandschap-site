@@ -85,6 +85,8 @@ export default function MaakEenRouwdier() {
   const sonificationFileRef = useRef<File | null>(null);
   const liveAudioContextRef = useRef<AudioContext | null>(null);
   const liveOscillatorRef = useRef<OscillatorNode | null>(null);
+  const liveOvertoneRef = useRef<OscillatorNode | null>(null);
+  const liveVibratoRef = useRef<OscillatorNode | null>(null);
   const liveGainRef = useRef<GainNode | null>(null);
 
   const titleSuggestion = firstUsefulLine(reference) || (modes.includes("write") ? firstUsefulLine(words).slice(0, 70) : "");
@@ -121,9 +123,15 @@ export default function MaakEenRouwdier() {
     const degree = Math.round(position * (selectedSonificationStyle.scale.length + 2));
     return midiToFrequency(selectedSonificationStyle.baseMidi + selectedSonificationStyle.scale[degree % selectedSonificationStyle.scale.length] + Math.floor(degree / selectedSonificationStyle.scale.length) * 12);
   };
+  const liveCelloFrequencyForHeight = (y: number, height = 720) => {
+    const position = Math.max(0, Math.min(1, (height - y) / height));
+    return 65.41 * Math.pow(2, position * 0.82);
+  };
   const stopLiveDrawingSound = () => {
     const audioContext = liveAudioContextRef.current;
     const oscillator = liveOscillatorRef.current;
+    const overtone = liveOvertoneRef.current;
+    const vibrato = liveVibratoRef.current;
     const gain = liveGainRef.current;
     if (!audioContext || !oscillator || !gain) return;
     const now = audioContext.currentTime;
@@ -131,7 +139,11 @@ export default function MaakEenRouwdier() {
     gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
     oscillator.stop(now + 0.18);
+    overtone?.stop(now + 0.18);
+    vibrato?.stop(now + 0.18);
     liveOscillatorRef.current = null;
+    liveOvertoneRef.current = null;
+    liveVibratoRef.current = null;
     liveGainRef.current = null;
   };
   const playLiveDrawingSound = (point: { x: number; y: number }, start = false) => {
@@ -145,20 +157,48 @@ export default function MaakEenRouwdier() {
     if (start || !liveOscillatorRef.current || !liveGainRef.current) {
       stopLiveDrawingSound();
       const oscillator = audioContext.createOscillator();
+      const overtone = audioContext.createOscillator();
+      const filter = audioContext.createBiquadFilter();
       const gain = audioContext.createGain();
-      oscillator.type = selectedSonificationStyle.waveform;
-      oscillator.frequency.setValueAtTime(frequencyForHeight(point.y), now);
+      const vibrato = audioContext.createOscillator();
+      const vibratoDepth = audioContext.createGain();
+      const frequency = liveCelloFrequencyForHeight(point.y);
+      oscillator.type = "sawtooth";
+      overtone.type = "triangle";
+      oscillator.frequency.setValueAtTime(frequency, now);
+      overtone.frequency.setValueAtTime(frequency * 2, now);
+      overtone.detune.setValueAtTime(4, now);
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(630, now);
+      filter.Q.setValueAtTime(0.55, now);
+      vibrato.type = "sine";
+      vibrato.frequency.setValueAtTime(4.4, now);
+      vibratoDepth.gain.setValueAtTime(2.1, now);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.045, now + 0.06);
-      oscillator.connect(gain).connect(audioContext.destination);
+      gain.gain.exponentialRampToValueAtTime(0.032, now + 0.12);
+      vibrato.connect(vibratoDepth).connect(oscillator.frequency);
+      vibratoDepth.connect(overtone.frequency);
+      oscillator.connect(filter);
+      overtone.connect(filter);
+      filter.connect(gain).connect(audioContext.destination);
       oscillator.start(now);
+      overtone.start(now);
+      vibrato.start(now);
       liveOscillatorRef.current = oscillator;
+      liveOvertoneRef.current = overtone;
+      liveVibratoRef.current = vibrato;
       liveGainRef.current = gain;
       return;
     }
+    const frequency = liveCelloFrequencyForHeight(point.y);
     liveOscillatorRef.current.frequency.cancelScheduledValues(now);
     liveOscillatorRef.current.frequency.setValueAtTime(liveOscillatorRef.current.frequency.value, now);
-    liveOscillatorRef.current.frequency.linearRampToValueAtTime(frequencyForHeight(point.y), now + 0.075);
+    liveOscillatorRef.current.frequency.linearRampToValueAtTime(frequency, now + 0.14);
+    if (liveOvertoneRef.current) {
+      liveOvertoneRef.current.frequency.cancelScheduledValues(now);
+      liveOvertoneRef.current.frequency.setValueAtTime(liveOvertoneRef.current.frequency.value, now);
+      liveOvertoneRef.current.frequency.linearRampToValueAtTime(frequency * 2, now + 0.14);
+    }
   };
   const drawAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
