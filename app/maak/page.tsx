@@ -126,6 +126,7 @@ export default function MaakEenRouwdier() {
   const liveAudioContextRef = useRef<AudioContext | null>(null);
   const liveInstrumentsRef = useRef<Map<string, SoundfontPlayer>>(new Map());
   const lastLiveSoundAt = useRef(0);
+  const liveAudioUnlocked = useRef(false);
   const soundDrawingEvents = useRef<Array<{ note: string; time: number; duration: number; release: number; gain: number }>>([]);
   const soundDrawingStartedAt = useRef<number | null>(null);
 
@@ -184,6 +185,21 @@ export default function MaakEenRouwdier() {
   };
   const frequencyForHeight = (y: number, height = 720) => {
     return midiToFrequency(midiForHeight(y, height, selectedSonificationStyle.baseMidi, selectedSonificationStyle.scale));
+  };
+  const unlockLiveAudio = () => {
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextConstructor) return;
+    const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
+    liveAudioContextRef.current = audioContext;
+    if (liveAudioUnlocked.current) { void audioContext.resume(); return; }
+    // iOS Safari only unlocks Web Audio when a source starts inside a direct touch event.
+    const source = audioContext.createBufferSource();
+    source.buffer = audioContext.createBuffer(1, 1, 22050);
+    source.connect(audioContext.destination);
+    source.start(0);
+    source.stop(0.001);
+    liveAudioUnlocked.current = true;
+    void audioContext.resume();
   };
   const playLiveDrawingSound = (point: { x: number; y: number }) => {
     if ((!liveDrawingSound && !modes.includes("sounddraw")) || Date.now() - lastLiveSoundAt.current < 320) return;
@@ -254,7 +270,7 @@ export default function MaakEenRouwdier() {
     lastPoint.current = point;
     playLiveDrawingSound(point);
   };
-  const beginDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (modes.includes("sounddraw") && soundDrawingStartedAt.current === null) soundDrawingStartedAt.current = performance.now(); drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); drawAt(event); };
+  const beginDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (modes.includes("sounddraw")) unlockLiveAudio(); if (modes.includes("sounddraw") && soundDrawingStartedAt.current === null) soundDrawingStartedAt.current = performance.now(); drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); drawAt(event); };
   const continueDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (drawing.current) drawAt(event); };
   const endDrawing = () => { drawing.current = false; lastPoint.current = null; if (canvasRef.current && (!modes.includes("sounddraw") || keepSoundDrawing)) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
   const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); soundDrawingEvents.current = []; soundDrawingStartedAt.current = null; setSoundDrawingEventCount(0); setDrawingDataUrl(""); setSonificationUrl(""); sonificationFileRef.current = null; };
