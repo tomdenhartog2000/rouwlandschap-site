@@ -26,9 +26,9 @@ const aiForms: Array<{ id: AiForm; title: string; text: string }> = [
 
 const drawingColours = ["#2e2b26", "#b5533c", "#486f92", "#667f55", "#b17b46", "#81556f"];
 const sonificationStyles: Array<{ id: SonificationStyle; title: string; text: string; waveform: OscillatorType; baseMidi: number; scale: number[] }> = [
-  { id: "quiet", title: "laag en rustig", text: "een zachte, lage klank", waveform: "sine", baseMidi: 38, scale: [0, 3, 5, 7, 10] },
-  { id: "warm", title: "warm en rond", text: "iets voller, zonder scherp te worden", waveform: "triangle", baseMidi: 41, scale: [0, 2, 5, 7, 9] },
-  { id: "clear", title: "licht en helder", text: "iets hoger, maar nog steeds zacht", waveform: "sine", baseMidi: 46, scale: [0, 2, 4, 7, 9] },
+  { id: "quiet", title: "laag en rustig", text: "een zachte, lage klank", waveform: "sine", baseMidi: 45, scale: [0, 3, 5, 7, 10] },
+  { id: "warm", title: "warm en rond", text: "iets voller, zonder scherp te worden", waveform: "triangle", baseMidi: 48, scale: [0, 2, 5, 7, 9] },
+  { id: "clear", title: "licht en helder", text: "iets hoger, maar nog steeds zacht", waveform: "sine", baseMidi: 51, scale: [0, 2, 4, 7, 9] },
 ];
 
 function firstUsefulLine(value: string) {
@@ -201,8 +201,8 @@ export default function MaakEenRouwdier() {
       oscillator.type = waveform;
       oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.linearRampToValueAtTime(volume, start + Math.min(.035, duration / 3));
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + Math.max(.05, duration * .96));
+      gain.gain.linearRampToValueAtTime(volume, start + Math.min(.07, duration / 3));
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + Math.max(.12, duration * .98));
       oscillator.connect(gain).connect(offline.destination);
       oscillator.start(start);
       oscillator.stop(start + duration);
@@ -218,7 +218,7 @@ export default function MaakEenRouwdier() {
       }
       if (!total) return;
       const y = yTotal / total;
-      addTone(0, seconds, frequencyForHeight(y, height), .055, selectedSonificationStyle.waveform);
+      addTone(0, seconds, frequencyForHeight(y, height), .095, selectedSonificationStyle.waveform);
     } else {
       const columns = 48, bands = 7, step = seconds / columns;
       for (let column = 0; column < columns; column += 1) for (let band = 0; band < bands; band += 1) {
@@ -227,7 +227,7 @@ export default function MaakEenRouwdier() {
         const index = (y * width + x) * 4;
         const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
         if (data[index + 3] > 10 && darkness > 28) {
-          addTone(column * step, step, frequencyForHeight(y, height), Math.min(.035, darkness / 4200), selectedSonificationStyle.waveform);
+          addTone(column * step, step * 2.6, frequencyForHeight(y, height), Math.min(.068, darkness / 2700), selectedSonificationStyle.waveform);
         }
       }
     }
