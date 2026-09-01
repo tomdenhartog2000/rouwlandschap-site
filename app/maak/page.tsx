@@ -84,7 +84,8 @@ export default function MaakEenRouwdier() {
   const audioFileRef = useRef<File | null>(null);
   const sonificationFileRef = useRef<File | null>(null);
   const liveAudioContextRef = useRef<AudioContext | null>(null);
-  const lastLiveSoundAt = useRef(0);
+  const liveOscillatorRef = useRef<OscillatorNode | null>(null);
+  const liveGainRef = useRef<GainNode | null>(null);
 
   const titleSuggestion = firstUsefulLine(reference) || (modes.includes("write") ? firstUsefulLine(words).slice(0, 70) : "");
   const descriptionSuggestion = words || careReflection;
@@ -120,25 +121,44 @@ export default function MaakEenRouwdier() {
     const degree = Math.round(position * (selectedSonificationStyle.scale.length + 2));
     return midiToFrequency(selectedSonificationStyle.baseMidi + selectedSonificationStyle.scale[degree % selectedSonificationStyle.scale.length] + Math.floor(degree / selectedSonificationStyle.scale.length) * 12);
   };
-  const playLiveDrawingSound = (point: { x: number; y: number }) => {
-    if (!liveDrawingSound || Date.now() - lastLiveSoundAt.current < 135) return;
-    lastLiveSoundAt.current = Date.now();
+  const stopLiveDrawingSound = () => {
+    const audioContext = liveAudioContextRef.current;
+    const oscillator = liveOscillatorRef.current;
+    const gain = liveGainRef.current;
+    if (!audioContext || !oscillator || !gain) return;
+    const now = audioContext.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+    oscillator.stop(now + 0.18);
+    liveOscillatorRef.current = null;
+    liveGainRef.current = null;
+  };
+  const playLiveDrawingSound = (point: { x: number; y: number }, start = false) => {
+    if (!liveDrawingSound) return;
     const AudioContextConstructor = window.AudioContext;
     if (!AudioContextConstructor) return;
     const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
     liveAudioContextRef.current = audioContext;
     void audioContext.resume();
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
     const now = audioContext.currentTime;
-    oscillator.type = selectedSonificationStyle.waveform;
-    oscillator.frequency.setValueAtTime(frequencyForHeight(point.y), now);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.035, now + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
-    oscillator.connect(gain).connect(audioContext.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.14);
+    if (start || !liveOscillatorRef.current || !liveGainRef.current) {
+      stopLiveDrawingSound();
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = selectedSonificationStyle.waveform;
+      oscillator.frequency.setValueAtTime(frequencyForHeight(point.y), now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.045, now + 0.06);
+      oscillator.connect(gain).connect(audioContext.destination);
+      oscillator.start(now);
+      liveOscillatorRef.current = oscillator;
+      liveGainRef.current = gain;
+      return;
+    }
+    liveOscillatorRef.current.frequency.cancelScheduledValues(now);
+    liveOscillatorRef.current.frequency.setValueAtTime(liveOscillatorRef.current.frequency.value, now);
+    liveOscillatorRef.current.frequency.linearRampToValueAtTime(frequencyForHeight(point.y), now + 0.075);
   };
   const drawAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -150,6 +170,7 @@ export default function MaakEenRouwdier() {
     context.lineWidth = 3.5;
     context.lineCap = "round";
     context.lineJoin = "round";
+    const startsNewLine = !lastPoint.current;
     if (lastPoint.current) {
       context.beginPath();
       context.moveTo(lastPoint.current.x, lastPoint.current.y);
@@ -157,11 +178,11 @@ export default function MaakEenRouwdier() {
       context.stroke();
     }
     lastPoint.current = point;
-    playLiveDrawingSound(point);
+    playLiveDrawingSound(point, startsNewLine);
   };
   const beginDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); drawAt(event); };
   const continueDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (drawing.current) drawAt(event); };
-  const endDrawing = () => { drawing.current = false; lastPoint.current = null; if (canvasRef.current) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
+  const endDrawing = () => { drawing.current = false; lastPoint.current = null; stopLiveDrawingSound(); if (canvasRef.current) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
   const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); setDrawingDataUrl(""); setSonificationUrl(""); sonificationFileRef.current = null; };
   const addPhotos = async (files?: FileList | null) => {
     const selectedFiles = Array.from(files ?? []);
