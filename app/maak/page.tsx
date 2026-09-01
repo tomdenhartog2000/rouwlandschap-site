@@ -125,6 +125,7 @@ export default function MaakEenRouwdier() {
   const audioFileRef = useRef<File | null>(null);
   const sonificationFileRef = useRef<File | null>(null);
   const liveAudioContextRef = useRef<AudioContext | null>(null);
+  const activationAudioRef = useRef<HTMLAudioElement>(null);
   const liveInstrumentsRef = useRef<Map<string, SoundfontPlayer>>(new Map());
   const lastLiveSoundAt = useRef(0);
   const liveAudioUnlocked = useRef(false);
@@ -203,19 +204,13 @@ export default function MaakEenRouwdier() {
     return audioContext;
   };
   const activateLiveSound = () => {
-    const audioContext = unlockLiveAudio();
-    if (!audioContext) return;
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(196, audioContext.currentTime);
-    gain.gain.setValueAtTime(.0001, audioContext.currentTime);
-    gain.gain.linearRampToValueAtTime(.075, audioContext.currentTime + .035);
-    gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .32);
-    oscillator.connect(gain).connect(audioContext.destination);
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + .34);
-    void audioContext.resume().then(() => setLiveSoundReady(true)).catch(() => setLiveSoundReady(false));
+    const activationAudio = activationAudioRef.current;
+    if (!activationAudio) return;
+    activationAudio.currentTime = 0;
+    void activationAudio.play().then(() => {
+      unlockLiveAudio();
+      setLiveSoundReady(true);
+    }).catch(() => setLiveSoundReady(false));
   };
   const playLiveDrawingSound = (point: { x: number; y: number }) => {
     if ((!liveDrawingSound && !modes.includes("sounddraw")) || Date.now() - lastLiveSoundAt.current < 320) return;
@@ -730,6 +725,7 @@ export default function MaakEenRouwdier() {
     const label = inputs.find((input) => input.id === mode)?.title;
     return <div className="input-surface" key={mode}>
       <p className="surface-label">{label}</p>
+      {mode === "sounddraw" && <audio ref={activationAudioRef} className="activation-audio" src="/klank-aan.wav" preload="auto" />}
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}

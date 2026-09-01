@@ -492,6 +492,7 @@ body:has(.admin-page) {
 .sound-activation { display: grid; gap: 8px; margin-top: 16px; padding: 12px 0 0; }
 .sound-activation p { margin: 0; color: #6b655b; font-size: 14px; }
 .sound-activation .secondary-button { justify-self: start; }
+.activation-audio { display: none; }
 .drawing-result-controls { display: grid; gap: 12px; margin-top: 16px; }
 .drawing-result-controls small { color: #6b655b; font-size: 13px; }
 .drawing-result-controls audio { width: 100%; }
