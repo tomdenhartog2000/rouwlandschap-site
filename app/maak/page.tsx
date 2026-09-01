@@ -197,7 +197,6 @@ export default function MaakEenRouwdier() {
     source.buffer = audioContext.createBuffer(1, 1, 22050);
     source.connect(audioContext.destination);
     source.start(0);
-    source.stop(0.001);
     liveAudioUnlocked.current = true;
     void audioContext.resume();
   };
@@ -208,7 +207,6 @@ export default function MaakEenRouwdier() {
     if (!AudioContextConstructor) return;
     const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
     liveAudioContextRef.current = audioContext;
-    void audioContext.resume();
     const instrumentNames = sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth");
     if (!instrumentNames.length) return;
     const liveBaseMidi = sonificationStyle === "quiet" ? 43 : sonificationStyle === "clear" ? 53 : 48;
@@ -227,29 +225,32 @@ export default function MaakEenRouwdier() {
       }
     };
     const play = (instruments: SoundfontPlayer[], shouldRecord = true) => {
-      if (!drawing.current) return;
       instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack: .1, release, gain: gain / instruments.length }));
       if (shouldRecord) recordSound();
     };
-    const cached = instrumentNames.map((name) => liveInstrumentsRef.current.get(name)).filter((instrument): instrument is SoundfontPlayer => Boolean(instrument));
-    if (cached.length === instrumentNames.length) { play(cached); return; }
-    // A local tone gives immediate feedback on phones while the first instrument file is still loading.
-    const oscillator = audioContext.createOscillator();
-    const fallbackGain = audioContext.createGain();
-    oscillator.type = sonificationStyle === "warm" ? "triangle" : "sine";
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    fallbackGain.gain.setValueAtTime(.0001, audioContext.currentTime);
-    fallbackGain.gain.linearRampToValueAtTime(Math.min(.12, gain * .45), audioContext.currentTime + .025);
-    fallbackGain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + Math.min(.42, duration * .42));
-    oscillator.connect(fallbackGain).connect(audioContext.destination);
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + Math.min(.46, duration * .46));
-    recordSound();
-    void loadSoundfont().then(async (soundfont) => Promise.all(instrumentNames.map(async (name) => {
-      const loaded = liveInstrumentsRef.current.get(name) || await soundfont.instrument(audioContext, name);
-      liveInstrumentsRef.current.set(name, loaded);
-      return loaded;
-    }))).then((instruments) => play(instruments, false)).catch(() => undefined);
+    const startPlayback = () => {
+      const cached = instrumentNames.map((name) => liveInstrumentsRef.current.get(name)).filter((instrument): instrument is SoundfontPlayer => Boolean(instrument));
+      if (cached.length === instrumentNames.length) { play(cached); return; }
+      // The first local tone starts only after Safari confirms that the audio context is running.
+      const oscillator = audioContext.createOscillator();
+      const fallbackGain = audioContext.createGain();
+      oscillator.type = sonificationStyle === "warm" ? "triangle" : "sine";
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      fallbackGain.gain.setValueAtTime(.0001, audioContext.currentTime);
+      fallbackGain.gain.linearRampToValueAtTime(Math.min(.12, gain * .45), audioContext.currentTime + .025);
+      fallbackGain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + Math.min(.42, duration * .42));
+      oscillator.connect(fallbackGain).connect(audioContext.destination);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + Math.min(.46, duration * .46));
+      recordSound();
+      void loadSoundfont().then(async (soundfont) => Promise.all(instrumentNames.map(async (name) => {
+        const loaded = liveInstrumentsRef.current.get(name) || await soundfont.instrument(audioContext, name);
+        liveInstrumentsRef.current.set(name, loaded);
+        return loaded;
+      }))).catch(() => undefined);
+    };
+    if (audioContext.state === "running") startPlayback();
+    else void audioContext.resume().then(startPlayback).catch(() => undefined);
   };
   const drawAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
