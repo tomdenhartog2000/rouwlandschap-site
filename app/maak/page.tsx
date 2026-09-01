@@ -90,6 +90,7 @@ export default function MaakEenRouwdier() {
   const [drawingColour, setDrawingColour] = useState(drawingColours[0]);
   const [drawingThickness, setDrawingThickness] = useState<DrawingThickness>("regular");
   const [liveSoundReady, setLiveSoundReady] = useState(false);
+  const [isPreparingLiveSound, setIsPreparingLiveSound] = useState(false);
   const [liveDrawingSound, setLiveDrawingSound] = useState(false);
   const [sonificationMode, setSonificationMode] = useState<SonificationMode>("tone");
   const [sonificationStyle, setSonificationStyle] = useState<SonificationStyle>("quiet");
@@ -203,14 +204,26 @@ export default function MaakEenRouwdier() {
     void audioContext.resume();
     return audioContext;
   };
+  const prepareLiveInstruments = async (names = sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth")) => {
+    if (!names.length) return;
+    const audioContext = unlockLiveAudio();
+    if (!audioContext) throw new Error("De klank kon niet worden gestart.");
+    await audioContext.resume();
+    const soundfont = await loadSoundfont();
+    await Promise.all(names.map(async (name) => {
+      const loaded = liveInstrumentsRef.current.get(name) || await soundfont.instrument(audioContext, name);
+      liveInstrumentsRef.current.set(name, loaded);
+    }));
+  };
   const activateLiveSound = () => {
     const activationAudio = activationAudioRef.current;
     if (!activationAudio) return;
+    setIsPreparingLiveSound(true);
     activationAudio.currentTime = 0;
     void activationAudio.play().then(() => {
       unlockLiveAudio();
-      setLiveSoundReady(true);
-    }).catch(() => setLiveSoundReady(false));
+      return prepareLiveInstruments();
+    }).then(() => setLiveSoundReady(true)).catch(() => setLiveSoundReady(false)).finally(() => setIsPreparingLiveSound(false));
   };
   const playLiveDrawingSound = (point: { x: number; y: number }) => {
     if ((!liveDrawingSound && !modes.includes("sounddraw")) || Date.now() - lastLiveSoundAt.current < 320) return;
@@ -226,7 +239,6 @@ export default function MaakEenRouwdier() {
     const liveGain = sonificationStyle === "quiet" ? .19 : sonificationStyle === "clear" ? .24 : .28;
     const scale = [0, 3, 5, 7, 10];
     const note = midiToNoteName(midiForHeight(point.y, 720, liveBaseMidi, scale));
-    const frequency = midiToFrequency(midiForHeight(point.y, 720, liveBaseMidi, scale));
     const thicknessCharacter = soundCharacterForThickness();
     const duration = (sonificationStyle === "quiet" ? .9 : .72) * thicknessCharacter.duration;
     const release = (sonificationStyle === "quiet" ? .5 : .36) * thicknessCharacter.release;
@@ -238,33 +250,20 @@ export default function MaakEenRouwdier() {
       }
     };
     const play = (instruments: SoundfontPlayer[], shouldRecord = true) => {
-      instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack: .1, release, gain: gain / instruments.length }));
+      instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack: .18, release, gain: gain / instruments.length }));
       if (shouldRecord) recordSound();
     };
     const startPlayback = () => {
       const cached = instrumentNames.map((name) => liveInstrumentsRef.current.get(name)).filter((instrument): instrument is SoundfontPlayer => Boolean(instrument));
       if (cached.length === instrumentNames.length) { play(cached); return; }
-      // The first local tone starts only after Safari confirms that the audio context is running.
-      const oscillator = audioContext.createOscillator();
-      const fallbackGain = audioContext.createGain();
-      oscillator.type = sonificationStyle === "warm" ? "triangle" : "sine";
-      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      fallbackGain.gain.setValueAtTime(.0001, audioContext.currentTime);
-      fallbackGain.gain.linearRampToValueAtTime(Math.min(.12, gain * .45), audioContext.currentTime + .025);
-      fallbackGain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + Math.min(.42, duration * .42));
-      oscillator.connect(fallbackGain).connect(audioContext.destination);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + Math.min(.46, duration * .46));
-      recordSound();
-      void loadSoundfont().then(async (soundfont) => Promise.all(instrumentNames.map(async (name) => {
-        const loaded = liveInstrumentsRef.current.get(name) || await soundfont.instrument(audioContext, name);
-        liveInstrumentsRef.current.set(name, loaded);
-        return loaded;
-      }))).catch(() => undefined);
+      void prepareLiveInstruments(instrumentNames);
     };
     if (audioContext.state === "running") startPlayback();
     else void audioContext.resume().then(startPlayback).catch(() => undefined);
   };
+  useEffect(() => {
+    if (liveSoundReady) void prepareLiveInstruments();
+  }, [liveSoundReady, sonificationInstrumentsSelected]);
   const drawAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
@@ -726,6 +725,7 @@ export default function MaakEenRouwdier() {
     return <div className="input-surface" key={mode}>
       <p className="surface-label">{label}</p>
       {mode === "sounddraw" && <audio ref={activationAudioRef} className="activation-audio" src="/klank-aan.wav" preload="auto" />}
+      {mode === "sounddraw" && isPreparingLiveSound && <p className="sound-preparing">klank wordt klaargezet…</p>}
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
