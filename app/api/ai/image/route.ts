@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const direction = typeof incoming.get("direction") === "string" ? String(incoming.get("direction")).trim().slice(0, 1_200) : "";
     const baseDirection = typeof incoming.get("baseDirection") === "string" ? String(incoming.get("baseDirection")).trim().slice(0, 1_200) : "";
     const isRevision = incoming.get("revision") === "true";
+    const aiPath = incoming.get("aiPath") === "together" ? "together" : "translate";
     const context = typeof incoming.get("context") === "string" ? String(incoming.get("context")).trim().slice(0, 2_000) : "";
     const source = incoming.get("source");
     const sourceFile = source instanceof File && source.size ? source : null;
@@ -28,10 +29,10 @@ export async function POST(request: Request) {
 
     const prompt = [
       "Create one quiet visual addition for a participatory art project about living with loss.",
-      isRevision && sourceFile ? "Treat the supplied image as an earlier proposal. Preserve its composition and every element that the visitor does not explicitly ask to change." : sourceFile ? "Keep the visitor's original image or drawing recognisable and present. Add around or alongside it rather than replacing it." : "Make a visual starting point from the visitor's words without illustrating them literally.",
+      aiPath === "together" && isRevision && sourceFile ? "Treat the supplied image as an earlier co-created result. Preserve the visitor's drawing or photo and every element that the visitor does not explicitly ask to change. Change only the requested part." : aiPath === "together" && sourceFile ? "Keep the visitor's original drawing or photo clearly recognisable and present as the foreground. Do not redraw, crop, recolour, resize, cover, or replace it. Add only the requested element around or behind it." : sourceFile ? "Use the supplied drawing or photo as source material. Create a fully developed new visual interpretation from it. It may be freely expanded, transformed, and re-composed while remaining connected to the original." : "Make a visual starting point from the visitor's words without illustrating them literally.",
       "Use restrained, natural colours and a simple composition. Do not add text, letters, names, faces, people, religious symbols, memorial symbols, flames, sparkles, dramatic light, logos, or watermarks.",
       baseDirection ? `The visitor's original request: ${baseDirection}` : "",
-      isRevision && direction ? `The visitor now wants this change: ${direction}` : direction ? `The visitor asks: ${direction}` : "Add a subtle abstract background or surrounding layer.",
+      isRevision && direction ? `The visitor now wants this change: ${direction}` : direction ? `The visitor asks: ${direction}` : aiPath === "together" ? "Add a subtle abstract background or surrounding layer." : "Make a quiet visual interpretation.",
       context ? `Visitor context: ${context}` : "",
     ].filter(Boolean).join("\n");
 

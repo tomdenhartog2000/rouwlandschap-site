@@ -132,9 +132,9 @@ export default function MaakEenRouwdier() {
   const hasMotionForm = aiFormsSelected.includes("motion");
   const hasTextInput = Boolean(words.trim() || careReflection.trim() || reference.trim());
   const hasVisualInput = Boolean(photos.length || (modes.includes("draw") && drawingDataUrl));
-  const availableAiForms = (aiPath === "translate" ? aiForms.filter((form) => form.id === "image") : aiForms.filter((form) => form.id === "image" || (form.id === "text" && hasTextInput) || (form.id === "motion" && hasVisualInput))).map((form) => form.id !== "image" ? form : aiPath === "translate" ? { ...form, title: "Maak een nieuw beeld", text: "AI maakt een nieuw beeld vanuit wat jij hebt ingebracht." } : hasVisualInput ? { ...form, title: "Werk verder met mijn beeld", text: "AI maakt één beeld met jouw foto of tekening als vertrekpunt." } : { ...form, title: "Maak een beeld bij mijn bijdrage", text: "AI maakt een nieuw beeld als reactie op wat jij hebt ingebracht." });
-  const aiImageHeading = aiPath === "translate" ? "Welk nieuw beeld mag AI maken?" : hasVisualInput ? "Hoe mag AI verder werken met jouw beeld?" : "Welk beeld mag AI bij jouw bijdrage maken?";
-  const aiImagePromptLabel = aiPath === "translate" ? "wat wil je dat AI verbeeldt?" : hasVisualInput ? "wat mag AI met jouw beeld doen?" : "wat wil je dat AI verbeeldt?";
+  const availableAiForms = (aiPath === "translate" ? aiForms.filter((form) => form.id === "image") : aiForms.filter((form) => (form.id === "image" && hasVisualInput) || (form.id === "text" && hasTextInput) || (form.id === "motion" && hasVisualInput))).map((form) => form.id !== "image" ? form : aiPath === "translate" ? { ...form, title: "Maak een nieuw beeld", text: "AI werkt jouw bijdrage uit tot een nieuw beeld." } : { ...form, title: "Voeg iets toe aan mijn beeld", text: "Je tekening of foto blijft aanwezig. AI kan er bijvoorbeeld een achtergrond aan toevoegen." });
+  const aiImageHeading = aiPath === "translate" ? "Welk nieuw beeld mag AI maken?" : "Wat mag AI aan jouw beeld toevoegen?";
+  const aiImagePromptLabel = aiPath === "translate" ? "wat wil je dat AI verbeeldt?" : "wat wil je veranderen of toevoegen?";
   const savedAudioUrl = sonificationUrl || audioUrl;
   const selectedSonificationStyle = sonificationStyles.find((style) => style.id === sonificationStyle) || sonificationStyles[0];
   const motionPreviewImage = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
@@ -451,6 +451,7 @@ export default function MaakEenRouwdier() {
       data.set("direction", direction);
       data.set("baseDirection", aiPrompt);
       data.set("revision", String(isRevision));
+      data.set("aiPath", aiPath);
       data.set("context", [words, reference, careReflection, transcriptContext].filter(Boolean).join("\n"));
       const source = isRevision && aiImageDataUrl ? aiImageDataUrl : photos[0]?.dataUrl || (modes.includes("draw") ? drawingDataUrl : "");
       if (source) data.set("source", await dataUrlToFile(source, photos[0]?.name || "tekening.png"));
