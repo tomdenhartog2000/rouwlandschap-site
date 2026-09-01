@@ -61,6 +61,7 @@ function placementFor(id: string, offset = 0) {
 }
 
 export default function Landschap() {
+  const [kijkAlleen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("kijk") === "1");
   const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
   const [visitorLandscapes, setVisitorLandscapes] = useState<Array<{ id: string; name: string }>>([]);
   const [landscapeMenuOpen, setLandscapeMenuOpen] = useState(false);
@@ -141,12 +142,12 @@ export default function Landschap() {
 
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
-      if (event.data?.type === "rouwdier:open-make") window.location.assign("/maak");
+      if (event.data?.type === "rouwdier:open-make" && !kijkAlleen) window.location.assign("/maak");
       if (event.data?.type === "rouwdier:landscape-ready") configureLandscapeMenu();
     };
     window.addEventListener("message", openMakeSpace);
     return () => window.removeEventListener("message", openMakeSpace);
-  }, [visitorLandscapes]);
+  }, [kijkAlleen, visitorLandscapes]);
 
   useEffect(() => {
     let typed = "";
@@ -196,8 +197,8 @@ export default function Landschap() {
           <p>je bent in</p>
           <strong>{landscape.name}</strong>
           {visitorLandscapes.filter((item) => item.id !== landscape.id).length > 0 && <><div className="visitor-menu-divider" /><p>andere landschappen</p>{visitorLandscapes.filter((item) => item.id !== landscape.id).map((item) => <button key={item.id} type="button" onClick={() => selectLandscape(item)}>{item.name}</button>)}</>}
-          <div className="visitor-menu-divider" />
-          <button type="button" className="visitor-make-link" onClick={() => window.location.assign("/maak")}>Wil jij iets toevoegen?</button>
+          {!kijkAlleen && <><div className="visitor-menu-divider" />
+          <button type="button" className="visitor-make-link" onClick={() => window.location.assign("/maak")}>Wil jij iets toevoegen?</button></>}
         </div>}
       </div>
       {contributions.map((contribution, index) => {

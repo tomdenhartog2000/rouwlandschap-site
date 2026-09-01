@@ -422,6 +422,8 @@ body:has(.admin-page) {
 .information-card section p, .information-source { margin: 0 0 12px; color: #6b655b; font-size: 16px; line-height: 1.55; }
 .information-source { margin-top: 30px; }
 .information-card a { color: inherit; text-underline-offset: 3px; }
+.information-source .primary-button { color: #f7f4ec; text-decoration: none; }
+.information-source .primary-button:hover, .information-source .primary-button:focus-visible { color: #2e2b26; }
 .make-header { min-height: 42px; margin-bottom: clamp(35px, 7vh, 64px); border-bottom: 1px solid #d8d1c5; }
 .back-link { color: #6b655b; font-size: 16px; text-decoration: none; }
 .back-link:hover, .back-link:focus-visible { color: #2e2b26; text-decoration: underline; }
