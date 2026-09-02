@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     text: row.textValue,
     reference: row.reference,
     referenceLink: row.referenceLink,
+    landscape: row.landscape,
     sharing: row.sharing === "here" || row.sharing === "future" ? row.sharing : "online",
     status: row.status,
     createdAt: row.createdAt,

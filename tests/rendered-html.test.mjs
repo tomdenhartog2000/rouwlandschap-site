@@ -30,10 +30,11 @@ test("the server validates shared content and only accepts safe reference links"
   assert.match(route, /Voeg eerst iets toe voordat je rouwdier kan worden gedeeld/);
 });
 
-test("AI options require clear consent and stay optional", async () => {
+test("AI options require clear consent, stay optional, and can be combined", async () => {
   const page = await source("app/maak/page.tsx");
   assert.match(page, /disabled=\{isGenerating \|\| !hasAiConsent\}/);
   assert.match(page, /Ik wil zonder AI verder/);
-  assert.match(page, /Je kiest nu één bewerking/);
+  assert.match(page, /Je kunt één of meer bewerkingen kiezen/);
+  assert.match(page, /current\.includes\(form\) \? current\.filter/);
   assert.doesNotMatch(page, /achtergrond of extra beeldlaag/);
 });
