@@ -38,3 +38,13 @@ test("AI options require clear consent, stay optional, and can be combined", asy
   assert.match(page, /current\.includes\(form\) \? current\.filter/);
   assert.doesNotMatch(page, /achtergrond of extra beeldlaag/);
 });
+
+test("a drawing stays an exact layer when AI adds to it", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const imageRoute = await source("app/api/ai/image/route.ts");
+  const landscape = await source("app/landschap/page.tsx");
+  assert.match(makePage, /keepDrawingExact/);
+  assert.match(makePage, /card-exact-drawing/);
+  assert.match(imageRoute, /Return the surrounding layer or background only/);
+  assert.match(landscape, /created-contribution-exact-drawing/);
+});

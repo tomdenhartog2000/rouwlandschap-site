@@ -255,6 +255,7 @@ body:has(.admin-page) {
 .created-contribution-ai-wrap { position: relative; margin-bottom: 18px; }
 .created-contribution-card .created-contribution-ai-wrap .created-contribution-ai { margin: 0; }
 .created-contribution-card .created-contribution-ai-wrap .created-contribution-source { position: absolute; right: 12px; bottom: 12px; width: 28%; aspect-ratio: 1; margin: 0; padding: 4px; object-fit: cover; background: #fffdf8; border: 1px solid #d8d1c5; }
+.created-contribution-card .created-contribution-ai-wrap .created-contribution-exact-drawing { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; object-fit: contain; pointer-events: none; }
 .created-contribution-card div { white-space: pre-wrap; font: 16px/1.55 "Atkinson Hyperlegible", Arial, sans-serif; }
 .created-contribution-audio { display: block; width: 100%; margin: 0 0 18px; }
 .created-contribution-reference { margin-bottom: 12px; }
@@ -725,6 +726,8 @@ body:has(.admin-page) {
 .card-ai-image { position: relative; }
 .card-source-visual { position: absolute; right: 12px; bottom: 12px; width: 28%; aspect-ratio: 1; padding: 4px; background: #fffdf8; border: 1px solid #d8d1c5; }
 .card-source-visual img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card-exact-drawing { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.exact-drawing-note { margin: 14px 0 0; color: #6b655b; font-size: 15px; }
 .card-photo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
 .card-photo-grid img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
 .card-original-words { margin-top: 16px; white-space: pre-wrap; }

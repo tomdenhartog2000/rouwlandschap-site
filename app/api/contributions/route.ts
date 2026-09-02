@@ -52,6 +52,7 @@ function toLandscapeContribution(row: typeof contributions.$inferSelect): Landsc
     reference: row.reference,
     referenceLink: row.referenceLink,
     motion: row.motion,
+    exactDrawing: Boolean(attachments.find((item) => item.role === "drawing")?.exactDrawing),
     landscape: row.landscape,
     sharing: row.sharing === "here" || row.sharing === "future" ? row.sharing : "online",
     createdAt: row.createdAt,
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
     const audio = data.get("audio");
     const aiImage = data.get("aiImage");
     const drawingFile = drawing instanceof File && drawing.size ? drawing : null;
+    const exactDrawing = data.get("exactDrawing") === "true";
     const audioFile = audio instanceof File && audio.size ? audio : null;
     const aiImageFile = aiImage instanceof File && aiImage.size ? aiImage : null;
 
@@ -94,15 +96,15 @@ export async function POST(request: Request) {
 
     const id = crypto.randomUUID();
     const attachments: StoredAttachment[] = [];
-    const files: Array<{ file: File; role: StoredAttachment["role"]; name: string }> = [];
+    const files: Array<{ file: File; role: StoredAttachment["role"]; name: string; exactDrawing?: boolean }> = [];
     photoFiles.forEach((file, index) => files.push({ file, role: "photo", name: `foto-${index + 1}.${fileExtension(file, "jpg")}` }));
-    if (drawingFile) files.push({ file: drawingFile, role: "drawing", name: `tekening.${fileExtension(drawingFile, "png")}` });
+    if (drawingFile) files.push({ file: drawingFile, role: "drawing", name: `tekening.${fileExtension(drawingFile, "png")}`, exactDrawing });
     if (aiImageFile) files.push({ file: aiImageFile, role: "ai", name: `ai-toevoeging.${fileExtension(aiImageFile, "png")}` });
     if (audioFile) files.push({ file: audioFile, role: "audio", name: `geluid.${fileExtension(audioFile, "webm")}` });
 
     for (const item of files) {
       await storage().UPLOADS.put(`${id}/${item.name}`, await item.file.arrayBuffer(), { httpMetadata: { contentType: item.file.type || "application/octet-stream" } });
-      attachments.push({ name: item.name, type: item.file.type || "application/octet-stream", role: item.role });
+      attachments.push({ name: item.name, type: item.file.type || "application/octet-stream", role: item.role, ...(item.exactDrawing ? { exactDrawing: true } : {}) });
     }
 
     const now = Date.now();

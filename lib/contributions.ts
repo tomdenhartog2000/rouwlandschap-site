@@ -2,6 +2,7 @@ export type StoredAttachment = {
   name: string;
   type: string;
   role: "photo" | "drawing" | "audio" | "ai";
+  exactDrawing?: boolean;
 };
 
 export type LandscapeContribution = {
@@ -17,6 +18,7 @@ export type LandscapeContribution = {
   reference: string;
   referenceLink: string;
   motion: string;
+  exactDrawing: boolean;
   landscape: string;
   sharing: "online" | "here" | "future";
   createdAt: number;
