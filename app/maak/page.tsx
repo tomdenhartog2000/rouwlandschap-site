@@ -242,7 +242,7 @@ export default function MaakEenRouwdier() {
     const instrumentNames = sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth");
     if (!instrumentNames.length) return;
     const liveBaseMidi = sonificationStyle === "quiet" ? 43 : sonificationStyle === "clear" ? 53 : 48;
-    const liveGain = sonificationStyle === "quiet" ? .19 : sonificationStyle === "clear" ? .24 : .28;
+    const liveGain = sonificationStyle === "quiet" ? .34 : sonificationStyle === "clear" ? .43 : .50;
     const scale = [0, 3, 5, 7, 10];
     const note = midiToNoteName(midiForHeight(point.y, 720, liveBaseMidi, scale));
     const thicknessCharacter = soundCharacterForThickness();
