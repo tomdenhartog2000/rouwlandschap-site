@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rouwdieren — Testlandschap",
+  title: "Rouwdieren",
   description: "Verken een landschap waarin herinneringen als subtiele vonkjes verschijnen.",
 };
 
