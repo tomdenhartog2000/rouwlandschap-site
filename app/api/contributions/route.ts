@@ -109,12 +109,13 @@ export async function POST(request: Request) {
 
     const now = Date.now();
     const kind = stringField(data, "kind", 80) || "Tekst";
-    const title = stringField(data, "title", 140) || "een rouwdier";
+    const providedTitle = stringField(data, "title", 140);
+    const title = providedTitle || "een rouwdier";
     const description = stringField(data, "description");
     const textValue = stringField(data, "text");
     const reference = stringField(data, "reference");
     const referenceLink = safeReferenceLink(stringField(data, "referenceLink", 1_000));
-    if (!files.length && !description && !textValue && !reference && !referenceLink) {
+    if (!files.length && !providedTitle && !description && !textValue && !reference && !referenceLink) {
       return Response.json({ error: "Voeg eerst iets toe voordat je rouwdier kan worden gedeeld." }, { status: 400 });
     }
     const requestedMotion = stringField(data, "motion", 24);

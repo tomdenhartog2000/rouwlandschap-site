@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Rouwdieren",
-  description: "Verken een landschap waarin herinneringen als subtiele vonkjes verschijnen.",
+  description: "Ontdek en vorm rouwdieren: persoonlijke vormen voor wat met je meeleeft na verlies.",
 };
 
 export default function RootLayout({

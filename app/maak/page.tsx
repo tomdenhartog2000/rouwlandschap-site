@@ -41,6 +41,7 @@ const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string
   { id: "voice", title: "Geluidsopname", text: "Een stem, klank, geluid of iets wat jij wil vertellen.", symbol: "microphone" },
   { id: "reference", title: "Aanwijzen", text: "Een liedje, tekst, gezegde of plek die al bestaat.", symbol: "↗" },
 ];
+const MAX_PHOTOS = 5;
 
 const aiForms: Array<{ id: AiForm; title: string; text: string }> = [
   { id: "image", title: "Beeld", text: "AI maakt een beeld vanuit wat jij hebt ingebracht." },
@@ -131,8 +132,9 @@ export default function MaakEenRouwdier() {
   const liveInstrumentsRef = useRef<Map<string, SoundfontPlayer>>(new Map());
   const lastLiveSoundAt = useRef(0);
   const liveAudioUnlocked = useRef(false);
-  const soundDrawingEvents = useRef<Array<{ note: string; time: number; duration: number; attack: number; release: number; gain: number }>>([]);
+  const soundDrawingEvents = useRef<Array<{ note: string; midi: number; waveform: OscillatorType; time: number; duration: number; attack: number; release: number; gain: number }>>([]);
   const soundDrawingStartedAt = useRef<number | null>(null);
+  const previousAiPath = useRef<AiPath>("none");
 
   const titleSuggestion = firstUsefulLine(reference) || (modes.includes("write") ? firstUsefulLine(words).slice(0, 70) : "");
   const descriptionSuggestion = words || careReflection;
@@ -165,16 +167,55 @@ export default function MaakEenRouwdier() {
       ? { title: "Deze opstelling", text: "Je rouwdier kan, naast online, bij deze opstelling worden getoond. Als de opstelling naar een andere plek reist, wordt het daar niet opnieuw tentoongesteld." }
       : { title: "Andere plekken", text: "Je rouwdier reist anoniem mee met de collectie, ook naar plekken die nu nog niet bekend zijn. Niet alle rouwdieren worden daar getoond." };
 
-  const toggleMode = (mode: InputMode) => setModes((current) => {
-    if (current.includes(mode)) return current.filter((item) => item !== mode);
-    if (mode === "draw" || mode === "sounddraw") return [...current.filter((item) => item !== "draw" && item !== "sounddraw"), mode];
-    return [...current, mode];
-  });
-  const toggleAiForm = (form: AiForm) => setAiFormsSelected((current) => current.includes(form) ? current.filter((item) => item !== form) : [...current, form]);
+  const resetSoundDrawing = () => {
+    soundDrawingEvents.current = [];
+    soundDrawingStartedAt.current = null;
+    setSoundDrawingEventCount(0);
+    if (sonificationUrl) URL.revokeObjectURL(sonificationUrl);
+    setSonificationUrl("");
+    sonificationFileRef.current = null;
+    setKeepSoundDrawing(false);
+    setDrawingDataUrl("");
+    setLiveSoundReady(false);
+  };
+  const toggleMode = (mode: InputMode) => {
+    if (mode === "sounddraw" || (mode === "draw" && modes.includes("sounddraw"))) resetSoundDrawing();
+    setModes((current) => {
+      if (current.includes(mode)) return current.filter((item) => item !== mode);
+      if (mode === "draw" || mode === "sounddraw") return [...current.filter((item) => item !== "draw" && item !== "sounddraw"), mode];
+      return [...current, mode];
+    });
+  };
+  const resetGeneratedAi = () => {
+    setAiImageDataUrl("");
+    setAiTextResult("");
+    setAiMotion("");
+    setSourceVisualChoice("");
+    setFeedbackDirection(null);
+    setFeedback("");
+    setGenerationError("");
+  };
+  const toggleAiForm = (form: AiForm) => {
+    resetGeneratedAi();
+    setAiFormsSelected((current) => current.includes(form) ? current.filter((item) => item !== form) : [...current, form]);
+  };
+  useEffect(() => {
+    if (previousAiPath.current === aiPath) return;
+    previousAiPath.current = aiPath;
+    setHasAiConsent(false);
+    setAiPrompt("");
+    setAiImageDataUrl("");
+    setAiTextResult("");
+    setAiMotion("");
+    setSourceVisualChoice("");
+    setFeedbackDirection(null);
+    setFeedback("");
+    setGenerationError("");
+  }, [aiPath]);
   const toggleSonificationInstrument = (instrument: SonificationInstrument) => setSonificationInstrumentsSelected((current) => {
-    if (instrument === "synth") return current.includes("synth") ? [] : ["synth"];
+    if (instrument === "synth") return current.includes("synth") ? current : ["synth"];
     const withoutSynth = current.filter((item) => item !== "synth");
-    if (withoutSynth.includes(instrument)) return withoutSynth.filter((item) => item !== instrument);
+    if (withoutSynth.includes(instrument)) return withoutSynth.length === 1 ? current : withoutSynth.filter((item) => item !== instrument);
     return [...withoutSynth, instrument].slice(-2);
   });
 
@@ -239,12 +280,14 @@ export default function MaakEenRouwdier() {
     if (!AudioContextConstructor) return;
     const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
     liveAudioContextRef.current = audioContext;
+    const isSimpleTone = sonificationInstrumentsSelected.includes("synth");
     const instrumentNames = sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth");
-    if (!instrumentNames.length) return;
     const liveBaseMidi = sonificationStyle === "quiet" ? 43 : sonificationStyle === "clear" ? 53 : 48;
     const liveGain = sonificationStyle === "quiet" ? .65 : sonificationStyle === "clear" ? .82 : .95;
     const scale = [0, 3, 5, 7, 10];
-    const note = midiToNoteName(midiForHeight(point.y, 720, liveBaseMidi, scale));
+    const midi = midiForHeight(point.y, 720, liveBaseMidi, scale);
+    const note = midiToNoteName(midi);
+    const waveform: OscillatorType = sonificationStyle === "warm" ? "triangle" : "sine";
     const thicknessCharacter = soundCharacterForThickness();
     const duration = (sonificationStyle === "quiet" ? .9 : .72) * thicknessCharacter.duration;
     const attack = .36;
@@ -252,7 +295,7 @@ export default function MaakEenRouwdier() {
     const gain = liveGain * thicknessCharacter.gain;
     const recordSound = () => {
       if (modes.includes("sounddraw") && soundDrawingStartedAt.current !== null) {
-        soundDrawingEvents.current.push({ note, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, attack, release, gain });
+        soundDrawingEvents.current.push({ note, midi, waveform, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, attack, release, gain });
         setSoundDrawingEventCount(soundDrawingEvents.current.length);
       }
     };
@@ -260,7 +303,22 @@ export default function MaakEenRouwdier() {
       instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack, release, gain: gain / instruments.length }));
       if (shouldRecord) recordSound();
     };
+    const playSimpleTone = () => {
+      const start = audioContext.currentTime;
+      const oscillator = audioContext.createOscillator();
+      const envelope = audioContext.createGain();
+      oscillator.type = waveform;
+      oscillator.frequency.value = midiToFrequency(midi);
+      envelope.gain.setValueAtTime(.0001, start);
+      envelope.gain.linearRampToValueAtTime(Math.min(.32, gain * .32), start + Math.min(attack, duration / 3));
+      envelope.gain.exponentialRampToValueAtTime(.0001, start + duration + release);
+      oscillator.connect(envelope).connect(audioContext.destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration + release + .02);
+      recordSound();
+    };
     const startPlayback = () => {
+      if (isSimpleTone) { playSimpleTone(); return; }
       const cached = instrumentNames.map((name) => liveInstrumentsRef.current.get(name)).filter((instrument): instrument is SoundfontPlayer => Boolean(instrument));
       if (cached.length === instrumentNames.length) { play(cached); return; }
       void prepareLiveInstruments(instrumentNames);
@@ -295,13 +353,13 @@ export default function MaakEenRouwdier() {
   const endDrawing = () => { drawing.current = false; lastPoint.current = null; if (canvasRef.current && (!modes.includes("sounddraw") || keepSoundDrawing)) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
   const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); soundDrawingEvents.current = []; soundDrawingStartedAt.current = null; setSoundDrawingEventCount(0); setDrawingDataUrl(""); setSonificationUrl(""); sonificationFileRef.current = null; };
   const addPhotos = async (files?: FileList | null) => {
-    const selectedFiles = Array.from(files ?? []);
+    const selectedFiles = Array.from(files ?? []).slice(0, Math.max(0, MAX_PHOTOS - photos.length));
     const prepared = await Promise.all(selectedFiles.map((file) => new Promise<{ name: string; url: string; dataUrl: string }>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve({ name: file.name, url: URL.createObjectURL(file), dataUrl: String(reader.result) });
       reader.readAsDataURL(file);
     })));
-    if (prepared.length) setPhotos((current) => [...current, ...prepared]);
+    if (prepared.length) setPhotos((current) => [...current, ...prepared].slice(0, MAX_PHOTOS));
   };
   const removePhoto = (url: string) => setPhotos((current) => current.filter((photo) => photo.url !== url));
 
@@ -398,10 +456,26 @@ export default function MaakEenRouwdier() {
     const lastEvent = soundDrawingEvents.current.at(-1)!;
     const seconds = Math.max(2, lastEvent.time + lastEvent.duration + lastEvent.release + .25);
     const offline = new OfflineAudioContext(1, Math.ceil(44100 * seconds), 44100);
-    const soundfont = await loadSoundfont();
-    const instruments = await Promise.all(sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth").map((instrument) => soundfont.instrument(offline, instrument)));
-    if (!instruments.length) throw new Error("Er is geen instrumentklank gekozen.");
-    for (const event of soundDrawingEvents.current) instruments.forEach((instrument) => instrument.play(event.note, event.time + .03, { duration: event.duration, attack: event.attack, release: event.release, gain: event.gain / instruments.length }));
+    if (sonificationInstrumentsSelected.includes("synth")) {
+      for (const event of soundDrawingEvents.current) {
+        const oscillator = offline.createOscillator();
+        const envelope = offline.createGain();
+        const start = event.time + .03;
+        oscillator.type = event.waveform;
+        oscillator.frequency.value = midiToFrequency(event.midi);
+        envelope.gain.setValueAtTime(.0001, start);
+        envelope.gain.linearRampToValueAtTime(Math.min(.32, event.gain * .32), start + Math.min(event.attack, event.duration / 3));
+        envelope.gain.exponentialRampToValueAtTime(.0001, start + event.duration + event.release);
+        oscillator.connect(envelope).connect(offline.destination);
+        oscillator.start(start);
+        oscillator.stop(start + event.duration + event.release + .02);
+      }
+    } else {
+      const soundfont = await loadSoundfont();
+      const instruments = await Promise.all(sonificationInstrumentsSelected.map((instrument) => soundfont.instrument(offline, instrument)));
+      if (!instruments.length) throw new Error("Er is geen instrumentklank gekozen.");
+      for (const event of soundDrawingEvents.current) instruments.forEach((instrument) => instrument.play(event.note, event.time + .03, { duration: event.duration, attack: event.attack, release: event.release, gain: event.gain / instruments.length }));
+    }
     await saveSonification(await offline.startRendering());
   };
   const createSonification = async () => {
@@ -802,7 +876,7 @@ export default function MaakEenRouwdier() {
       {mode === "sounddraw" && isPreparingLiveSound && <p className="sound-preparing">klank wordt klaargezet…</p>}
       {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
       {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
-      {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div>{photos.length > 0 && <small>{photos.length === 1 ? "1 foto toegevoegd" : `${photos.length} foto’s toegevoegd`}</small>}</div>}
+      {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" disabled={photos.length >= MAX_PHOTOS} onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS} onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div><small>{photos.length ? `${photos.length} van maximaal ${MAX_PHOTOS} foto’s toegevoegd` : `Je kunt maximaal ${MAX_PHOTOS} foto’s toevoegen.`}</small></div>}
       {(mode === "draw" || mode === "sounddraw") && <>{mode === "sounddraw" && <div className="sound-controls"><p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p><div className="sound-activation">{liveSoundReady ? <p>Klank staat aan.</p> : <><button type="button" className="secondary-button" onClick={activateLiveSound}>zet klank aan</button><p>Tik hier eerst op. Daarna hoor je de klank tijdens het tekenen.</p></>}</div><div className="drawing-sound-area"><p>Welke klank wil je tekenen?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Welke instrumentklanken wil je horen? <span>maximaal twee</span></p><div className="drawing-sound-options">{sonificationInstruments.map((instrument) => <button type="button" key={instrument.id} className={sonificationInstrumentsSelected.includes(instrument.id) ? "is-selected" : ""} onClick={() => toggleSonificationInstrument(instrument.id)}><strong>{instrument.title}</strong><span>{instrument.text}</span></button>)}</div></div></div>}<div className="drawing-tools"><div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><div className="drawing-thicknesses" aria-label="Kies lijndikte">{drawingThicknesses.map((thickness) => <button type="button" key={thickness.id} className={drawingThickness === thickness.id ? "is-selected" : ""} onClick={() => setDrawingThickness(thickness.id)}><strong style={{ "--stroke-width": `${thickness.width}px` } as React.CSSProperties} aria-hidden="true" />{thickness.title}</button>)}</div></div><div className="drawing-area">
         <canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
         <button type="button" className="clear-button" onClick={clearDrawing}>begin opnieuw</button>

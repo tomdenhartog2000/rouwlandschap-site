@@ -1,1 +1,1 @@
-export { default } from "../landschap/page";
+export { default } from "@/components/Landschap";

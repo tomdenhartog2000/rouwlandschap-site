@@ -42,9 +42,24 @@ test("AI options require clear consent, stay optional, and can be combined", asy
 test("a drawing stays an exact layer when AI adds to it", async () => {
   const makePage = await source("app/maak/page.tsx");
   const imageRoute = await source("app/api/ai/image/route.ts");
-  const landscape = await source("app/landschap/page.tsx");
+  const landscape = await source("components/Landschap.tsx");
   assert.match(makePage, /keepDrawingExact/);
   assert.match(makePage, /card-exact-drawing/);
   assert.match(imageRoute, /Return the surrounding layer or background only/);
   assert.match(landscape, /created-contribution-exact-drawing/);
+});
+
+test("the old landscape path redirects to the single visitor experience", async () => {
+  const oldRoute = await source("app/landschap/page.tsx");
+  const visitorRoute = await source("app/verken/page.tsx");
+  assert.match(oldRoute, /redirect\("\/verken"\)/);
+  assert.match(visitorRoute, /components\/Landschap/);
+});
+
+test("a title is valid content and photo selection is limited to five", async () => {
+  const page = await source("app/maak/page.tsx");
+  const route = await source("app/api/contributions/route.ts");
+  assert.match(page, /const MAX_PHOTOS = 5/);
+  assert.match(page, /maximaal \$\{MAX_PHOTOS\} foto/);
+  assert.match(route, /!providedTitle/);
 });
