@@ -450,7 +450,9 @@ body:has(.admin-page) {
 .quiet-button { padding: 10px 0; color: #6b655b; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; }
 .step-actions { margin-top: 27px; }
 
-.input-options { gap: 9px; margin: 23px 0; }
+.input-groups { display: grid; gap: 22px; margin: 23px 0; }
+.input-group h2 { margin: 0; color: #6b655b; font-size: 15px; font-weight: 400; }
+.input-group .input-options { gap: 9px; margin: 9px 0 0; }
 .input-option { gap: 11px; padding: 14px; color: #2e2b26; background: transparent; border: 1px solid #cfc7ba; border-radius: 3px; }
 .input-option.is-selected, .input-option:hover { background: #ebe6dc; border-color: #6b655b; }
 .input-symbol { color: #6b655b; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-size: 18px; }
