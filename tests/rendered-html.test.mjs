@@ -10,7 +10,9 @@ async function source(path) {
 
 test("the entry page keeps both ways into the experience open", async () => {
   const page = await source("app/page.tsx");
-  assert.match(page, /Heb je al iets dat met je meeleeft/);
+  assert.match(page, /Misschien heeft wat met je meeleeft al een vorm/);
+  assert.match(page, /Leg iets vast of geef het vorm/);
+  assert.match(page, /Kijk eerst rond/);
   assert.match(page, /href="\/maak"/);
   assert.match(page, /href="\/verken"/);
   assert.match(page, /href="\/over-ai"/);

@@ -3,10 +3,11 @@ export default function Home() {
     <main className="entry-page">
       <section className="entry-card">
         <h1>Rouwdieren</h1>
-        <p className="entry-question">Heb je al iets dat met je meeleeft, of wil je hier iets vormgeven?</p>
-        <p className="entry-participation">Je kunt iets voor jezelf maken en bewaren. Alleen als je kiest dat het online, bij deze opstelling of op andere plekken mag leven, wordt het online bewaard. Bij het vormgeven kun je AI gebruiken, als je dat wilt. <a href="/over-ai">over AI en je bijdrage</a></p>
-        <a className="primary-button link-button" href="/maak">maak een rouwdier</a>
-        <a className="entry-landscape-link" href="/verken">of kijk eerst rond in het online landschap</a>
+        <p className="entry-question">Misschien heeft wat met je meeleeft al een vorm. Misschien krijgt het hier voor het eerst vorm.</p>
+        <p className="entry-participation">Aan het eind kies je pas of je iets achterlaat.</p>
+        <a className="primary-button link-button" href="/maak">Leg iets vast of geef het vorm</a>
+        <a className="entry-landscape-link" href="/verken">Kijk eerst rond</a>
+        <p className="entry-participation"><a href="/over-ai">over AI en je bijdrage</a></p>
       </section>
     </main>
   );
