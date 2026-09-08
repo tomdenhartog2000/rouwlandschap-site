@@ -9,7 +9,7 @@ type AiForm = "image" | "text" | "motion";
 type SharingChoice = "take" | "online" | "here" | "future";
 type SonificationMode = "tone" | "score";
 type SonificationStyle = "quiet" | "warm" | "clear";
-type SonificationInstrument = "string_ensemble_1" | "acoustic_grand_piano" | "acoustic_guitar_nylon" | "flute" | "synth";
+type SonificationInstrument = "string_ensemble_1" | "acoustic_grand_piano" | "acoustic_guitar_nylon" | "flute";
 type DrawingThickness = "fine" | "regular" | "broad";
 type SoundfontPlayer = { play: (note: string, when?: number, options?: { duration?: number; attack?: number; release?: number; gain?: number }) => unknown };
 type SoundfontLibrary = { instrument: (context: BaseAudioContext, instrument: string) => Promise<SoundfontPlayer> };
@@ -59,21 +59,17 @@ const drawingThicknesses: Array<{ id: DrawingThickness; title: string; width: nu
   { id: "regular", title: "gewoon", width: 4 },
   { id: "broad", title: "breed", width: 8 },
 ];
-const sonificationStyles: Array<{ id: SonificationStyle; title: string; text: string; waveform: OscillatorType; baseMidi: number; scale: number[] }> = [
-  { id: "quiet", title: "laag en rustig", text: "een zachte, lage klank", waveform: "sine", baseMidi: 45, scale: [0, 3, 5, 7, 10] },
-  { id: "warm", title: "warm en rond", text: "iets voller, zonder scherp te worden", waveform: "triangle", baseMidi: 48, scale: [0, 2, 5, 7, 9] },
-  { id: "clear", title: "licht en helder", text: "iets hoger, maar nog steeds zacht", waveform: "sine", baseMidi: 51, scale: [0, 2, 4, 7, 9] },
+const sonificationStyles: Array<{ id: SonificationStyle; title: string; text: string }> = [
+  { id: "quiet", title: "laag en rustig", text: "een zachte, lage klank" },
+  { id: "warm", title: "warm en rond", text: "iets voller, zonder scherp te worden" },
+  { id: "clear", title: "licht en helder", text: "iets hoger, maar nog steeds zacht" },
 ];
 const sonificationInstruments: Array<{ id: SonificationInstrument; title: string; text: string }> = [
   { id: "string_ensemble_1", title: "strijkers", text: "lang en gedragen" },
   { id: "acoustic_grand_piano", title: "piano", text: "helder en korter" },
   { id: "acoustic_guitar_nylon", title: "gitaar", text: "zacht en dichtbij" },
   { id: "flute", title: "fluit", text: "luchtig en licht" },
-  { id: "synth", title: "eenvoudige toon", text: "zonder instrumentklank" },
 ];
-function firstUsefulLine(value: string) {
-  return value.split("\n").map((line) => line.trim()).find(Boolean) ?? "";
-}
 
 export default function MaakEenRouwdier() {
   const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
@@ -136,16 +132,15 @@ export default function MaakEenRouwdier() {
   const liveInstrumentsRef = useRef<Map<string, SoundfontPlayer>>(new Map());
   const lastLiveSoundAt = useRef(0);
   const liveAudioUnlocked = useRef(false);
-  const soundDrawingEvents = useRef<Array<{ note: string; midi: number; waveform: OscillatorType; time: number; duration: number; attack: number; release: number; gain: number }>>([]);
+  const soundDrawingEvents = useRef<Array<{ note: string; time: number; duration: number; attack: number; release: number; gain: number }>>([]);
   const soundDrawingStartedAt = useRef<number | null>(null);
   const previousAiPath = useRef<AiPath>("none");
 
-  const titleSuggestion = firstUsefulLine(reference) || (modes.includes("write") ? firstUsefulLine(words).slice(0, 70) : "");
-  const descriptionSuggestion = words || careReflection;
-  const visibleTitle = title.trim() || titleSuggestion || "een rouwdier";
+  const descriptionSuggestion = careReflection.trim();
+  const visibleTitle = title.trim() || "een rouwdier";
   const visibleDescription = cardDescription.trim();
   const hasAi = aiPath !== "none";
-  const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || careReflection.trim() || reference.trim() || referenceLink.trim() || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
+  const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || reference.trim() || referenceLink.trim() || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
   const hasImageForm = aiFormsSelected.includes("image");
   const hasMotionForm = aiFormsSelected.includes("motion");
   const hasTextInput = Boolean(words.trim() || careReflection.trim() || reference.trim());
@@ -159,7 +154,6 @@ export default function MaakEenRouwdier() {
   const aiImageHeading = aiPath === "translate" ? (hasVisualInput ? "Welk nieuw beeld mag AI maken?" : "Welk beeld mag AI bij jouw woorden maken?") : hasVisualInput ? "Wat mag AI aan jouw beeld toevoegen?" : "Welk beeld mag AI bij jouw woorden maken?";
   const aiImagePromptLabel = aiPath === "translate" ? "wat wil je dat AI verbeeldt?" : hasVisualInput ? "wat wil je veranderen of toevoegen?" : "wat wil je dat AI bij jouw woorden verbeeldt?";
   const savedAudioUrl = sonificationUrl || audioUrl;
-  const selectedSonificationStyle = sonificationStyles.find((style) => style.id === sonificationStyle) || sonificationStyles[0];
   const motionPreviewImage = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
   const motionPreviewWords = words.trim() || reference.trim() || "jouw bijdrage";
   useEffect(() => {
@@ -217,13 +211,10 @@ export default function MaakEenRouwdier() {
     setGenerationError("");
   }, [aiPath]);
   const toggleSonificationInstrument = (instrument: SonificationInstrument) => setSonificationInstrumentsSelected((current) => {
-    if (instrument === "synth") return current.includes("synth") ? current : ["synth"];
-    const withoutSynth = current.filter((item) => item !== "synth");
-    if (withoutSynth.includes(instrument)) return withoutSynth.length === 1 ? current : withoutSynth.filter((item) => item !== instrument);
-    return [...withoutSynth, instrument].slice(-2);
+    if (current.includes(instrument)) return current.length === 1 ? current : current.filter((item) => item !== instrument);
+    return [...current, instrument].slice(-2);
   });
 
-  const midiToFrequency = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
   const midiToNoteName = (midi: number) => `${["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][midi % 12]}${Math.floor(midi / 12) - 1}`;
   const midiForHeight = (y: number, height: number, baseMidi: number, scale: number[]) => {
     const position = Math.max(0, Math.min(1, (height - y) / height));
@@ -236,9 +227,6 @@ export default function MaakEenRouwdier() {
     if (drawingThickness === "fine") return { gain: .76, duration: .72, release: .7 };
     if (drawingThickness === "broad") return { gain: 1.15, duration: 1.12, release: 1.15 };
     return { gain: 1, duration: .9, release: .9 };
-  };
-  const frequencyForHeight = (y: number, height = 720) => {
-    return midiToFrequency(midiForHeight(y, height, selectedSonificationStyle.baseMidi, selectedSonificationStyle.scale));
   };
   const unlockLiveAudio = () => {
     const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
@@ -255,7 +243,7 @@ export default function MaakEenRouwdier() {
     void audioContext.resume();
     return audioContext;
   };
-  const prepareLiveInstruments = async (names = sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth")) => {
+  const prepareLiveInstruments = async (names = sonificationInstrumentsSelected) => {
     if (!names.length) return;
     const audioContext = unlockLiveAudio();
     if (!audioContext) throw new Error("De klank kon niet worden gestart.");
@@ -284,14 +272,12 @@ export default function MaakEenRouwdier() {
     if (!AudioContextConstructor) return;
     const audioContext = liveAudioContextRef.current || new AudioContextConstructor();
     liveAudioContextRef.current = audioContext;
-    const isSimpleTone = sonificationInstrumentsSelected.includes("synth");
-    const instrumentNames = sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth");
+    const instrumentNames = sonificationInstrumentsSelected;
     const liveBaseMidi = sonificationStyle === "quiet" ? 43 : sonificationStyle === "clear" ? 53 : 48;
     const liveGain = sonificationStyle === "quiet" ? .65 : sonificationStyle === "clear" ? .82 : .95;
     const scale = [0, 3, 5, 7, 10];
     const midi = midiForHeight(point.y, 720, liveBaseMidi, scale);
     const note = midiToNoteName(midi);
-    const waveform: OscillatorType = sonificationStyle === "warm" ? "triangle" : "sine";
     const thicknessCharacter = soundCharacterForThickness();
     const duration = (sonificationStyle === "quiet" ? .9 : .72) * thicknessCharacter.duration;
     const attack = .36;
@@ -299,7 +285,7 @@ export default function MaakEenRouwdier() {
     const gain = liveGain * thicknessCharacter.gain;
     const recordSound = () => {
       if (modes.includes("sounddraw") && soundDrawingStartedAt.current !== null) {
-        soundDrawingEvents.current.push({ note, midi, waveform, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, attack, release, gain });
+        soundDrawingEvents.current.push({ note, time: (performance.now() - soundDrawingStartedAt.current) / 1000, duration, attack, release, gain });
         setSoundDrawingEventCount(soundDrawingEvents.current.length);
       }
     };
@@ -307,22 +293,7 @@ export default function MaakEenRouwdier() {
       instruments.forEach((instrument) => instrument.play(note, audioContext.currentTime, { duration, attack, release, gain: gain / instruments.length }));
       if (shouldRecord) recordSound();
     };
-    const playSimpleTone = () => {
-      const start = audioContext.currentTime;
-      const oscillator = audioContext.createOscillator();
-      const envelope = audioContext.createGain();
-      oscillator.type = waveform;
-      oscillator.frequency.value = midiToFrequency(midi);
-      envelope.gain.setValueAtTime(.0001, start);
-      envelope.gain.linearRampToValueAtTime(Math.min(.32, gain * .32), start + Math.min(attack, duration / 3));
-      envelope.gain.exponentialRampToValueAtTime(.0001, start + duration + release);
-      oscillator.connect(envelope).connect(audioContext.destination);
-      oscillator.start(start);
-      oscillator.stop(start + duration + release + .02);
-      recordSound();
-    };
     const startPlayback = () => {
-      if (isSimpleTone) { playSimpleTone(); return; }
       const cached = instrumentNames.map((name) => liveInstrumentsRef.current.get(name)).filter((instrument): instrument is SoundfontPlayer => Boolean(instrument));
       if (cached.length === instrumentNames.length) { play(cached); return; }
       void prepareLiveInstruments(instrumentNames);
@@ -403,7 +374,7 @@ export default function MaakEenRouwdier() {
     const sampleRate = 44100;
     const offline = new OfflineAudioContext(1, Math.ceil(sampleRate * seconds), sampleRate);
     const soundfont = await loadSoundfont();
-    const instruments = await Promise.all(sonificationInstrumentsSelected.filter((instrument) => instrument !== "synth").map((instrument) => soundfont.instrument(offline, instrument)));
+    const instruments = await Promise.all(sonificationInstrumentsSelected.map((instrument) => soundfont.instrument(offline, instrument)));
     if (!instruments.length) throw new Error("Er is geen instrumentklank gekozen.");
     const character = sonificationStyle === "quiet"
       ? { baseMidi: 43, gain: .48, duration: 1.25, release: 1.05 }
@@ -460,99 +431,15 @@ export default function MaakEenRouwdier() {
     const lastEvent = soundDrawingEvents.current.at(-1)!;
     const seconds = Math.max(2, lastEvent.time + lastEvent.duration + lastEvent.release + .25);
     const offline = new OfflineAudioContext(1, Math.ceil(44100 * seconds), 44100);
-    if (sonificationInstrumentsSelected.includes("synth")) {
-      for (const event of soundDrawingEvents.current) {
-        const oscillator = offline.createOscillator();
-        const envelope = offline.createGain();
-        const start = event.time + .03;
-        oscillator.type = event.waveform;
-        oscillator.frequency.value = midiToFrequency(event.midi);
-        envelope.gain.setValueAtTime(.0001, start);
-        envelope.gain.linearRampToValueAtTime(Math.min(.32, event.gain * .32), start + Math.min(event.attack, event.duration / 3));
-        envelope.gain.exponentialRampToValueAtTime(.0001, start + event.duration + event.release);
-        oscillator.connect(envelope).connect(offline.destination);
-        oscillator.start(start);
-        oscillator.stop(start + event.duration + event.release + .02);
-      }
-    } else {
-      const soundfont = await loadSoundfont();
-      const instruments = await Promise.all(sonificationInstrumentsSelected.map((instrument) => soundfont.instrument(offline, instrument)));
-      if (!instruments.length) throw new Error("Er is geen instrumentklank gekozen.");
-      for (const event of soundDrawingEvents.current) instruments.forEach((instrument) => instrument.play(event.note, event.time + .03, { duration: event.duration, attack: event.attack, release: event.release, gain: event.gain / instruments.length }));
-    }
+    const soundfont = await loadSoundfont();
+    const instruments = await Promise.all(sonificationInstrumentsSelected.map((instrument) => soundfont.instrument(offline, instrument)));
+    if (!instruments.length) throw new Error("Er is geen instrumentklank gekozen.");
+    for (const event of soundDrawingEvents.current) instruments.forEach((instrument) => instrument.play(event.note, event.time + .03, { duration: event.duration, attack: event.attack, release: event.release, gain: event.gain / instruments.length }));
     await saveSonification(await offline.startRendering());
   };
   const createSonification = async () => {
     if (modes.includes("sounddraw")) { await createSoundDrawingRecording(); return; }
-    if (sonificationInstrumentsSelected.some((instrument) => instrument !== "synth")) {
-      try {
-        await createInstrumentSonification();
-        return;
-      } catch {
-        // The drawing can still become a local tone when an instrument file cannot load.
-      }
-    }
-    await createSynthSonification();
-  };
-  const createSynthSonification = async () => {
-    const canvas = await drawingCanvasForSound();
-    if (!canvas || !drawingDataUrl || !window.OfflineAudioContext) return;
-    const pixels = canvas.getContext("2d", { willReadFrequently: true })?.getImageData(0, 0, canvas.width, canvas.height);
-    if (!pixels) return;
-    const seconds = sonificationMode === "score" ? 8 : 1.8;
-    const sampleRate = 22050;
-    const offline = new OfflineAudioContext(1, Math.ceil(sampleRate * seconds), sampleRate);
-    const addTone = (start: number, duration: number, frequency: number, volume: number, waveform: OscillatorType) => {
-      const oscillator = offline.createOscillator();
-      const gain = offline.createGain();
-      oscillator.type = waveform;
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.linearRampToValueAtTime(volume, start + Math.min(.07, duration / 3));
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + Math.max(.12, duration * .98));
-      oscillator.connect(gain).connect(offline.destination);
-      oscillator.start(start);
-      oscillator.stop(start + duration);
-    };
-    const { data } = pixels;
-    const { width, height } = canvas;
-    if (sonificationMode === "tone") {
-      let total = 0, yTotal = 0;
-      for (let y = 0; y < height; y += 8) for (let x = 0; x < width; x += 8) {
-        const index = (y * width + x) * 4;
-        const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
-        if (data[index + 3] > 10 && darkness > 24) { total += darkness; yTotal += y * darkness; }
-      }
-      if (!total) return;
-      const y = yTotal / total;
-      addTone(0, seconds, frequencyForHeight(y, height), .095, selectedSonificationStyle.waveform);
-    } else {
-      const columns = 72, step = seconds / columns;
-      const oscillator = offline.createOscillator();
-      const gain = offline.createGain();
-      oscillator.type = selectedSonificationStyle.waveform;
-      let previousFrequency = frequencyForHeight(height * .52, height);
-      oscillator.frequency.setValueAtTime(previousFrequency, 0);
-      gain.gain.setValueAtTime(.0001, 0);
-      gain.gain.linearRampToValueAtTime(.055, .22);
-      for (let column = 0; column < columns; column += 1) {
-        const xStart = Math.floor((column / columns) * width);
-        const xEnd = Math.min(width, Math.ceil(((column + 1) / columns) * width));
-        let total = 0, yTotal = 0;
-        for (let x = xStart; x < xEnd; x += 2) for (let y = 0; y < height; y += 4) {
-          const index = (y * width + x) * 4;
-          const darkness = 255 - (data[index] + data[index + 1] + data[index + 2]) / 3;
-          if (data[index + 3] > 10 && darkness > 24) { total += darkness; yTotal += y * darkness; }
-        }
-        if (total) previousFrequency = frequencyForHeight(yTotal / total, height);
-        oscillator.frequency.linearRampToValueAtTime(previousFrequency, Math.min(seconds - .03, (column + 1) * step));
-      }
-      gain.gain.exponentialRampToValueAtTime(.0001, seconds);
-      oscillator.connect(gain).connect(offline.destination);
-      oscillator.start(0);
-      oscillator.stop(seconds);
-    }
-    await saveSonification(await offline.startRendering());
+    await createInstrumentSonification();
   };
 
   const startRecording = async () => {
@@ -582,7 +469,7 @@ export default function MaakEenRouwdier() {
   const nextStepAfterImage = aiFormsSelected.includes("text") ? 22 : hasMotionForm ? 23 : 3;
   const nextStepAfterText = hasMotionForm ? 23 : 3;
   const previousAiStep = hasMotionForm ? 23 : aiFormsSelected.includes("text") ? 22 : hasImageForm ? 21 : 2;
-  const prepareCard = () => { if (!title.trim() && titleSuggestion) setTitle(titleSuggestion); if (!aiImageDataUrl && !cardDescription.trim() && descriptionSuggestion) setCardDescription(descriptionSuggestion); setStep(4); };
+  const prepareCard = () => { if (!cardDescription.trim() && descriptionSuggestion) setCardDescription(descriptionSuggestion); setStep(4); };
   const dataUrlToFile = async (dataUrl: string, name: string) => {
     const response = await fetch(dataUrl);
     const blob = await response.blob();
@@ -668,7 +555,7 @@ export default function MaakEenRouwdier() {
       const data = new FormData();
       data.set("title", visibleTitle);
       const hasAiEndProduct = Boolean(aiImageDataUrl);
-      data.set("description", visibleDescription || (hasAiEndProduct ? careReflection : words || careReflection));
+      data.set("description", visibleDescription);
       data.set("kind", hasAiEndProduct ? "Beeld met AI" : sonificationUrl ? "Tekening met klank" : modes.includes("voice") ? "Geluidsopname" : modes.includes("draw") ? "Tekening" : modes.includes("photo") ? "Foto" : modes.includes("reference") ? "Verwijzing" : "Tekst");
       data.set("sharing", sharing);
       if (aiMotion) data.set("motion", aiMotion);
@@ -755,7 +642,7 @@ export default function MaakEenRouwdier() {
     context.font = "400 26px Arial, sans-serif";
     const titleLines = wrapCanvasText(context, visibleTitle, contentWidth).slice(0, 3);
     context.font = "17px Arial, sans-serif";
-    const bodyText = visibleDescription || (!media && words ? words : "");
+    const bodyText = [words.trim(), visibleDescription].filter((value, index, values) => value && values.indexOf(value) === index).join("\n\n");
     const bodyLines = bodyText ? wrapCanvasText(context, bodyText, contentWidth).slice(0, 7) : [];
     const top = inset + padding;
     const titleTop = top + 47;
@@ -891,7 +778,7 @@ export default function MaakEenRouwdier() {
     </div>;
   };
 
-  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" />{preservesDrawingExactly && drawingDataUrl && <img className="card-exact-drawing" src={drawingDataUrl} alt="Jouw oorspronkelijke tekening" />}{!preservesDrawingExactly && sourceVisualChoice === "with-source" && <div className="card-source-visual">{photos[0] ? <img src={photos[0].url} alt="Oorspronkelijke afbeelding" /> : drawingDataUrl ? <img src={drawingDataUrl} alt="Oorspronkelijke tekening" /> : null}</div>}</div> : <>{photos.length === 1 && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{photos.length > 1 && <div className="card-photo-grid">{photos.map((photo, index) => <img key={photo.url} src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} />)}</div>}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !savedAudioUrl && words && <p className="card-words">{words}</p>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{words.trim() && aiImageDataUrl && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
+  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" />{preservesDrawingExactly && drawingDataUrl && <img className="card-exact-drawing" src={drawingDataUrl} alt="Jouw oorspronkelijke tekening" />}{!preservesDrawingExactly && sourceVisualChoice === "with-source" && <div className="card-source-visual">{photos[0] ? <img src={photos[0].url} alt="Oorspronkelijke afbeelding" /> : drawingDataUrl ? <img src={drawingDataUrl} alt="Oorspronkelijke tekening" /> : null}</div>}</div> : <>{photos.length === 1 && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{photos.length > 1 && <div className="card-photo-grid">{photos.map((photo, index) => <img key={photo.url} src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} />)}</div>}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !savedAudioUrl && words && <p className="card-words">{words}</p>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{words.trim() && Boolean(aiImageDataUrl || photos.length || drawingDataUrl || savedAudioUrl) && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
     {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Waar kan jouw rouwdier uit bestaan?</h1><p className="lead">Je kunt iets vastleggen, iets vormgeven, of verschillende vormen combineren.</p><div className="input-groups">{inputGroups.map((group) => <section className="input-group" key={group.id} aria-labelledby={`input-group-${group.id}`}><h2 id={`input-group-${group.id}`}>{group.title}</h2><div className="input-options">{group.inputIds.map((inputId) => { const input = inputs.find((item) => item.id === inputId)!; const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div></section>)}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
@@ -900,7 +787,7 @@ export default function MaakEenRouwdier() {
 
     {step === 2 && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>Wat wil je nu met je rouwdier doen?</h1><p className="lead">Je kunt zelf verdergaan, iets samen met AI maken, of AI vragen jouw input naar een andere vorm te vertalen.</p><div className="choice-list"><button type="button" className={aiPath === "none" ? "is-selected" : ""} onClick={() => { setAiPath("none"); setAiFormsSelected([]); }}><strong>Ik wil zelf verder</strong><span>Je rouwdier blijft zoals het nu is. Je kunt er zelf nog iets aan toevoegen.</span></button><button type="button" className={aiPath === "together" ? "is-selected" : ""} onClick={() => { setAiPath("together"); setAiFormsSelected([]); }}><strong>Ik wil samen met AI verder werken</strong><span>AI werkt met wat je hebt ingebracht. Jij bepaalt wat er gebeurt.</span></button><button type="button" className={aiPath === "translate" ? "is-selected" : ""} onClick={() => { setAiPath("translate"); setAiFormsSelected([]); }}><strong>Ik wil AI mijn input laten vertalen</strong><span>AI maakt een nieuw beeld vanuit wat jij hebt ingebracht.</span></button></div>{hasAi && <div className="ai-form-area"><p className="feedback-question">{aiPath === "together" ? "Wat mag AI nu doen?" : "AI maakt een nieuw beeld."}</p><p className="option-explainer">{aiPath === "together" ? "Je kunt één of meer bewerkingen kiezen. Je eigen bijdrage blijft zichtbaar of leesbaar." : "AI werkt met jouw bijdrage als vertrekpunt en maakt een nieuwe beeldversie."}</p><div className="choice-list">{availableAiForms.map((form) => <button type="button" key={form.id} className={aiFormsSelected.includes(form.id) ? "is-selected" : ""} onClick={() => toggleAiForm(form.id)}><strong>{form.title}</strong><span>{form.text}</span></button>)}</div></div>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(1)}>terug</button><button type="button" className="primary-button" disabled={hasAi && !aiFormsSelected.length} onClick={() => hasAi ? setStep(hasImageForm ? 21 : aiFormsSelected.includes("text") ? 22 : hasMotionForm ? 23 : 3) : setStep(3)}>verder</button></div></div>}
 
-    {step === 21 && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiImageDataUrl ? "Kijk even naar de AI-versie." : aiImageHeading}</h1><p className="lead">Straks beslis je wat ermee gebeurt. Je hoeft niets te delen als je dat niet wilt.</p>{hasImageForm && <><label className="title-field">{aiImagePromptLabel} <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: laat zien wat hier voor jou in meeleeft" aria-label="Wat mag AI verbeelden" /></label>{audioUrl && <label className="consent-field transcript-choice"><input type="checkbox" checked={useTranscript} onChange={(event) => setUseTranscript(event.target.checked)} /><span>Gebruik de woorden uit mijn opname ook voor dit beeld.</span><small>De opname wordt hiervoor eenmalig omgezet naar tekst. Die tekst komt niet op je kaartje en wordt niet bewaard.</small></label>}<label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat wat ik voor deze AI-versie kies tijdelijk naar OpenAI gaat.</span><small>OpenAI maakt hiermee een beeldvoorstel. Op het kaartje kies je later of een oorspronkelijke foto of tekening ook zichtbaar blijft.</small></label>{!aiImageDataUrl && <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent || (needsTranscriptForAiImage && !useTranscript)} onClick={() => void createAiImage()}>{isGenerating ? "beeld wordt gemaakt…" : "maak een beeldvoorstel"}</button></div>}{generationError && <p className="save-error" role="alert">{generationError}</p>}{aiImageDataUrl && <><div className="ai-result"><img src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "again" ? "is-selected" : ""} onClick={() => setFeedbackDirection("again")}>Ik wil opnieuw kijken</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{(feedbackDirection === "adjust" || feedbackDirection === "again") && <div className="feedback-followup"><p>Vertel wat je anders wilt zien.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiImage(feedback, true)}>{isGenerating ? "beeld wordt gemaakt…" : "maak een nieuwe versie"}</button></div>}{feedbackDirection === "without" && <p className="feedback-followup">Je eigen bijdrage blijft over, zonder de AI-versie.</p>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust" || feedbackDirection === "again"} onClick={() => { if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setAiImageDataUrl(""); setStep(3); return; } setStep(nextStepAfterImage); }}>verder</button></div></>}</>}</div>}
+    {step === 21 && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiImageDataUrl ? "Kijk even naar de AI-versie." : aiImageHeading}</h1><p className="lead">Straks beslis je wat ermee gebeurt. Je hoeft niets te delen als je dat niet wilt.</p>{hasImageForm && <><label className="title-field">{aiImagePromptLabel} <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: laat zien wat hier voor jou in meeleeft" aria-label="Wat mag AI verbeelden" /></label>{audioUrl && <label className="consent-field transcript-choice"><input type="checkbox" checked={useTranscript} onChange={(event) => setUseTranscript(event.target.checked)} /><span>Gebruik de woorden uit mijn opname ook voor dit beeld.</span><small>De opname wordt hiervoor eenmalig omgezet naar tekst. Die tekst komt niet op je kaartje en wordt niet bewaard.</small></label>}<label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat wat ik voor deze AI-versie kies tijdelijk naar OpenAI gaat.</span><small>OpenAI maakt hiermee een beeldvoorstel. Op het kaartje kies je later of een oorspronkelijke foto of tekening ook zichtbaar blijft.</small></label>{!aiImageDataUrl && <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent || (needsTranscriptForAiImage && !useTranscript)} onClick={() => void createAiImage()}>{isGenerating ? "beeld wordt gemaakt…" : "maak een beeldvoorstel"}</button></div>}{generationError && <p className="save-error" role="alert">{generationError}</p>}{aiImageDataUrl && <><div className="ai-result"><div className="card-ai-image"><img src={aiImageDataUrl} alt="Beeldvoorstel van AI" />{preservesDrawingExactly && drawingDataUrl && <img className="card-exact-drawing" src={drawingDataUrl} alt="Jouw oorspronkelijke tekening" />}</div></div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "again" ? "is-selected" : ""} onClick={() => setFeedbackDirection("again")}>Ik wil opnieuw kijken</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{(feedbackDirection === "adjust" || feedbackDirection === "again") && <div className="feedback-followup"><p>Vertel wat je anders wilt zien.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiImage(feedback, true)}>{isGenerating ? "beeld wordt gemaakt…" : "maak een nieuwe versie"}</button></div>}{feedbackDirection === "without" && <p className="feedback-followup">Je eigen bijdrage blijft over, zonder de AI-versie.</p>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust" || feedbackDirection === "again"} onClick={() => { if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setAiImageDataUrl(""); setStep(3); return; } setStep(nextStepAfterImage); }}>verder</button></div></>}</>}</div>}
 
     {step === 4 && <div><p className="eyebrow">4 van 5 · je rouwdier als kaartje</p><h1>Je rouwdier als kaartje</h1><p className="lead">We hebben alvast gebruikt wat je zelf hebt toegevoegd. Je kunt dit aanpassen, leegmaken of vervangen.</p><div className="card-editor"><CardPreview /><div className="card-fields"><label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label><label className="title-field">wat wil je erbij zeggen? <span>optioneel</span><textarea value={cardDescription} onChange={(event) => setCardDescription(event.target.value)} placeholder="Schrijf wat je wilt meegeven." aria-label="Toelichting bij je rouwdier" /></label></div></div>{aiImageDataUrl && preservesDrawingExactly && <p className="exact-drawing-note">Je tekening blijft precies zoals je hem hebt gemaakt.</p>}{aiImageDataUrl && hasOriginalVisual && !preservesDrawingExactly && <fieldset className="source-visual-choice"><legend>Wil je laten zien waar dit rouwdier begon?</legend><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "final"} onChange={() => setSourceVisualChoice("final")} />Alleen deze versie bewaren</label><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "with-source"} onChange={() => setSourceVisualChoice("with-source")} />Laat ook mijn foto of tekening zien</label></fieldset>}<div className="completion-actions"><button type="button" className="secondary-button" onClick={downloadCard}>bewaar als afbeelding</button>{savedAudioUrl && <a className="secondary-button" href={savedAudioUrl} download={sonificationUrl ? "klank-van-de-tekening.wav" : "geluidsopname.webm"}>bewaar {sonificationUrl ? "klank" : "geluidsopname"}</a>}</div><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(3)}>terug</button><button type="button" className="primary-button" disabled={Boolean(aiImageDataUrl && hasOriginalVisual && !preservesDrawingExactly && !sourceVisualChoice)} onClick={() => setStep(5)}>kies waar het mag leven</button></div></div>}
 

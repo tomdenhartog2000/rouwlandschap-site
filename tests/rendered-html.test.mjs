@@ -47,8 +47,23 @@ test("a drawing stays an exact layer when AI adds to it", async () => {
   const landscape = await source("components/Landschap.tsx");
   assert.match(makePage, /keepDrawingExact/);
   assert.match(makePage, /card-exact-drawing/);
+  assert.match(makePage, /ai-result.*card-exact-drawing/);
   assert.match(imageRoute, /Return the surrounding layer or background only/);
   assert.match(landscape, /created-contribution-exact-drawing/);
+});
+
+test("the card does not duplicate writing and keeps the reflection editable", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.doesNotMatch(page, /titleSuggestion/);
+  assert.match(page, /descriptionSuggestion = careReflection\.trim\(\)/);
+  assert.match(page, /data\.set\("description", visibleDescription\)/);
+});
+
+test("sound drawing only offers instrument sounds", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.doesNotMatch(page, /eenvoudige toon/);
+  assert.doesNotMatch(page, /"synth"/);
+  assert.match(page, /title: "strijkers"/);
 });
 
 test("the old landscape path redirects to the single visitor experience", async () => {
