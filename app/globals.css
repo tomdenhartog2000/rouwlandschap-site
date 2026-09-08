@@ -406,11 +406,11 @@ body:has(.admin-page) {
 .entry-card { display: grid; width: min(100%, 460px); gap: 16px; }
 .entry-card h1 { margin: 0; font-size: clamp(42px, 10vw, 56px); font-weight: 400; letter-spacing: -.04em; line-height: .98; }
 .entry-card p { max-width: 330px; margin: 0 0 7px; color: #6b655b; font-size: 17px; line-height: 1.5; }
-.entry-card .entry-question { max-width: 390px; margin: -1px 0 7px; color: #2e2b26; font-size: clamp(24px, 5.5vw, 28px); line-height: 1.25; }
+.entry-card .entry-question { max-width: 390px; margin: -1px 0 7px; color: #2e2b26; font-size: clamp(21px, 4.5vw, 24px); line-height: 1.3; }
 .entry-card .primary-button { width: max-content; margin-top: 4px; text-decoration: none; }
 .entry-landscape-link { width: max-content; color: #6b655b; font-size: 16px; font-style: italic; text-decoration: none; }
 .entry-landscape-link:hover, .entry-landscape-link:focus-visible { color: #2e2b26; text-decoration: underline; text-underline-offset: 3px; }
-.entry-participation { max-width: 410px; margin: 1px 0 0; color: #817b72; font-size: 14px; line-height: 1.5; }
+.entry-card .entry-participation { max-width: 410px; margin: 1px 0 0; color: #817b72; font-size: 16px; line-height: 1.5; }
 .entry-participation a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .entry-participation a:hover, .entry-participation a:focus-visible { color: #2e2b26; }
 
