@@ -72,6 +72,18 @@ test("co-creation requires and obeys an explicit visual edit request", async () 
   assert.match(imageRoute, /colour or background change is not permission to add decorative content/);
 });
 
+test("changing an AI image builds on it while looking again restarts from the original", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.match(page, /type AiImageRequest = "initial" \| "adjust" \| "again"/);
+  assert.match(page, /request === "adjust" && aiImageDataUrl \? aiImageDataUrl : originalSource/);
+  assert.match(page, /data\.set\("baseDirection", ""\)/);
+  assert.match(page, /data\.set\("revision", String\(request === "adjust"\)\)/);
+  assert.match(page, /feedbackDirection === "again" \? "again" : "adjust"/);
+  assert.match(page, /We beginnen bij je oorspronkelijke bijdrage/);
+  const imageRoute = await source("app/api/ai/image/route.ts");
+  assert.match(imageRoute, /isRevision \? "Treat the supplied image as the current AI result/);
+});
+
 test("removing an input mode also removes the contribution behind it", async () => {
   const page = await source("app/maak/page.tsx");
   assert.match(page, /if \(mode === "write"\) setWords\(""\)/);
