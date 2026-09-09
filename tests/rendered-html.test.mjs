@@ -41,16 +41,19 @@ test("AI options require clear consent, stay optional, and can be combined", asy
   assert.doesNotMatch(page, /achtergrond of extra beeldlaag/);
 });
 
-test("AI keeps originals separate and uses a drawing as its structural source", async () => {
+test("AI integrates a drawing as the structural source of one result", async () => {
   const makePage = await source("app/maak/page.tsx");
   const imageRoute = await source("app/api/ai/image/route.ts");
   const landscape = await source("components/Landschap.tsx");
-  assert.match(makePage, /keepsOriginalVisuals/);
+  assert.match(makePage, /aiPath === "translate" && sourceVisualChoice === "with-source"/);
   assert.match(makePage, /OriginalVisualPreview/);
+  assert.match(makePage, /photos\[0\]\?\.dataUrl \|\| drawingDataUrl/);
   assert.doesNotMatch(makePage, /card-exact-drawing/);
-  assert.match(imageRoute, /structural source/);
+  assert.match(imageRoute, /images\/edits/);
+  assert.match(imageRoute, /one integrated co-created image/);
+  assert.match(imageRoute, /drawn line is the essential structural source/);
   assert.match(imageRoute, /smooth uneven strokes/);
-  assert.match(imageRoute, /original contribution is preserved and displayed separately/);
+  assert.doesNotMatch(imageRoute, /displayed separately/);
   assert.match(landscape, /created-contribution-originals/);
 });
 
