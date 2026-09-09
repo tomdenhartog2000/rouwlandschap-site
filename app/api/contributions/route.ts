@@ -82,6 +82,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await ensureContributionStore();
+    const suppliedRequestId = request.headers.get("Idempotency-Key")?.trim() || "";
+    const requestId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(suppliedRequestId) ? suppliedRequestId : "";
+    if (requestId) {
+      const existing = await getDb().select().from(contributions).where(eq(contributions.id, requestId)).limit(1);
+      if (existing[0]) return Response.json({ contribution: toLandscapeContribution(existing[0]) });
+    }
     const data = await request.formData();
     const photoFiles = data.getAll("photos").filter((item): item is File => item instanceof File).slice(0, MAX_IMAGES);
     const drawing = data.get("drawing");
@@ -115,7 +121,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "De geluidsopname is te groot of heeft geen geldig audioformaat." }, { status: 400 });
     }
 
-    const id = crypto.randomUUID();
+    const id = requestId || crypto.randomUUID();
     const attachments: StoredAttachment[] = [];
     const files: Array<{ file: File; role: StoredAttachment["role"]; name: string; exactDrawing?: boolean }> = [];
     photoFiles.forEach((file, index) => files.push({ file, role: "photo", name: `foto-${index + 1}.${fileExtension(file, "jpg")}` }));
@@ -142,24 +148,32 @@ export async function POST(request: Request) {
     const requestedMotion = stringField(data, "motion", 24);
     const motion = requestedMotion === "breathe" || requestedMotion === "heartbeat" || requestedMotion === "drift" || requestedMotion === "sway" ? requestedMotion : "";
     const landscape = (await activeLandscape()).id;
-    const [row] = await getDb().insert(contributions).values({
-      id,
-      title,
-      description,
-      kind,
-      textValue,
-      reference,
-      referenceLink,
-      motion,
-      attachmentsJson: JSON.stringify(attachments),
-      landscape,
-      sharing,
-      exhibitionProcess: needsExhibitionFollowUp ? exhibitionProcess : "",
-      contactEmail: needsExhibitionContact ? contactEmail : "",
-      contactConsentAt: needsExhibitionContact ? now : 0,
-      status: "visible",
-      createdAt: now,
-    }).returning();
+    let row: typeof contributions.$inferSelect;
+    try {
+      [row] = await getDb().insert(contributions).values({
+        id,
+        title,
+        description,
+        kind,
+        textValue,
+        reference,
+        referenceLink,
+        motion,
+        attachmentsJson: JSON.stringify(attachments),
+        landscape,
+        sharing,
+        exhibitionProcess: needsExhibitionFollowUp ? exhibitionProcess : "",
+        contactEmail: needsExhibitionContact ? contactEmail : "",
+        contactConsentAt: needsExhibitionContact ? now : 0,
+        status: "visible",
+        createdAt: now,
+      }).returning();
+    } catch (error) {
+      if (!requestId) throw error;
+      const existing = await getDb().select().from(contributions).where(eq(contributions.id, id)).limit(1);
+      if (!existing[0]) throw error;
+      row = existing[0];
+    }
     return Response.json({ contribution: toLandscapeContribution(row) }, { status: 201 });
   } catch (error) {
     return Response.json({ error: "Je rouwdier kon niet worden toegevoegd. Probeer het opnieuw." }, { status: 500 });

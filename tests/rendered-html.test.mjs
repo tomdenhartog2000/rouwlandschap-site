@@ -45,6 +45,21 @@ test("the server validates shared content and only accepts safe reference links"
   assert.match(route, /Voeg eerst iets toe voordat je rouwdier kan worden gedeeld/);
 });
 
+test("local development applies the same migrations as production", async () => {
+  const packageJson = await source("package.json");
+  const localConfig = await source("wrangler.local.jsonc");
+  const baseline = await source("scripts/baseline-local.sql");
+  const store = await source("lib/contribution-store.ts");
+  assert.match(packageJson, /db:migrate:local/);
+  assert.match(packageJson, /db:baseline:local/);
+  assert.match(packageJson, /wrangler d1 migrations apply DB --local/);
+  assert.match(localConfig, /"migrations_dir": "drizzle"/);
+  assert.match(baseline, /pragma_table_info\('contributions'\)/);
+  assert.match(baseline, /0007_exhibition_contact\.sql/);
+  assert.doesNotMatch(store, /CREATE TABLE|CREATE INDEX|ALTER TABLE|PRAGMA table_info/);
+  assert.match(store, /INSERT OR IGNORE INTO landscapes/);
+});
+
 test("AI options require clear consent, stay optional, and can be combined", async () => {
   const page = await source("app/maak/page.tsx");
   assert.match(page, /disabled=\{isGenerating \|\| !hasAiConsent\}/);
@@ -52,6 +67,28 @@ test("AI options require clear consent, stay optional, and can be combined", asy
   assert.match(page, /Je kunt één of meer bewerkingen kiezen/);
   assert.match(page, /current\.includes\(form\) \? current\.filter/);
   assert.doesNotMatch(page, /achtergrond of extra beeldlaag/);
+});
+
+test("AI and contribution requests ignore double clicks and stale responses", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const contributionRoute = await source("app/api/contributions/route.ts");
+  const openAiRequest = await source("lib/openai-request.ts");
+  assert.match(makePage, /if \(aiRequestInFlightRef\.current\) return null/);
+  assert.match(makePage, /aiAbortControllerRef\.current\?\.abort\(\)/);
+  assert.match(makePage, /isCurrentAiRequest\(sequence\)/);
+  assert.match(makePage, /\[aiPrompt, feedback, useTranscript, hasAiConsent, step\]/);
+  assert.match(makePage, /if \(saveInFlightRef\.current\) return/);
+  assert.match(makePage, /submissionRequestIdRef\.current \|\| crypto\.randomUUID\(\)/);
+  assert.match(makePage, /"Idempotency-Key": submissionRequestId/);
+  assert.match(contributionRoute, /request\.headers\.get\("Idempotency-Key"\)/);
+  assert.match(contributionRoute, /where\(eq\(contributions\.id, requestId\)\)/);
+  assert.match(openAiRequest, /"Idempotency-Key": idempotencyKey/);
+});
+
+test("words-only image generation describes the source accurately", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.match(page, /hasVisualInput \? "OpenAI gebruikt je eerste foto of tekening/);
+  assert.match(page, /OpenAI gebruikt wat je hebt geschreven of verteld als bron voor een nieuwe beeldversie/);
 });
 
 test("AI integrates a drawing as the structural source of one result", async () => {
@@ -135,7 +172,7 @@ test("references are normalised, validated and remain visible on the card", asyn
 test("motion AI accepts a visual contribution without requiring words", async () => {
   const page = await source("app/maak/page.tsx");
   const route = await source("app/api/ai/text/route.ts");
-  assert.match(page, /hasVisualInput \}\) \}\)/);
+  assert.match(page, /mode: "motion", direction,[^\n]+hasVisualInput/);
   assert.match(route, /direction \|\| data\.hasVisualInput/);
   assert.match(route, /Er is een visuele bijdrage/);
 });
@@ -223,4 +260,11 @@ test("the card QR first opens the explanation page and says visitors can look ar
   assert.match(makePage, /Scan de QR-code en kijk eventueel rond/);
   assert.match(makePage, /tussen die van anderen\./);
   assert.match(makePage, /window\.location\.origin\}\/over-rouwdieren/);
+});
+
+test("downloaded cards keep the complete body text", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  assert.match(makePage, /const bodyLines = bodyText \? wrapCanvasText\(context, bodyText, contentWidth\) : \[\]/);
+  assert.doesNotMatch(makePage, /const bodyLines =[^\n]*slice\(0, 10\)/);
+  assert.match(makePage, /bodyLines\.length \* 26/);
 });

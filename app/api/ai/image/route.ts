@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { ensureContributionStore } from "@/lib/contribution-store";
+import { openAiHeaders } from "@/lib/openai-request";
 
 type OpenAiEnv = { OPENAI_API_KEY?: string; DB: D1Database };
 
@@ -52,11 +53,11 @@ export async function POST(request: Request) {
         body.set("quality", "low");
         body.set("output_format", "png");
         body.set("image", sourceFile);
-        return fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}` }, body });
+        return fetch(endpoint, { method: "POST", headers: openAiHeaders(request, apiKey), body });
       })()
       : await fetch(endpoint, {
         method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        headers: openAiHeaders(request, apiKey, true),
         body: JSON.stringify({ model: "gpt-image-1-mini", prompt, size: "1024x1024", quality: "low", output_format: "png" }),
       });
     const result = await response.json() as { data?: Array<{ b64_json?: string }>; error?: { message?: string } };

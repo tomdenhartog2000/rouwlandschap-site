@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { openAiHeaders } from "@/lib/openai-request";
 
 type OpenAiEnv = { OPENAI_API_KEY?: string };
 type TextMode = "text" | "motion";
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
       : "Kies één subtiele bewegingswijze voor een digitaal rouwdier op basis van wat de bezoeker heeft ingebracht en, als die er is, de wens voor de beweging. Antwoord uitsluitend met één van deze woorden: adem, hartslag, drijf, wieg. Kies niets dramatisch of opvallends.";
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: openAiHeaders(request, apiKey, true),
       body: JSON.stringify({ model: "gpt-4.1-mini", store: false, instructions, input: `${direction ? `Wens van de bezoeker: ${direction}\n\n` : ""}${text ? `Eigen woorden van de bezoeker:\n${text}` : data.hasVisualInput ? "Er is een visuele bijdrage, maar geen extra tekst. Kies een rustige, neutrale beweging." : "Geen woorden toegevoegd; gebruik alleen de wens voor de beweging."}` }),
     });
     const result = await response.json() as { error?: { message?: string }; output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }> };

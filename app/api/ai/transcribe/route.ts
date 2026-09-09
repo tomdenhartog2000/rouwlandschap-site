@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { openAiHeaders } from "@/lib/openai-request";
 
 type OpenAiEnv = { OPENAI_API_KEY?: string };
 
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     body.set("language", "nl");
     const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: openAiHeaders(request, apiKey),
       body,
     });
     const result = await response.json() as { text?: string; error?: { message?: string } };
