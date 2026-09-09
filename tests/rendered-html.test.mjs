@@ -53,8 +53,23 @@ test("AI integrates a drawing as the structural source of one result", async () 
   assert.match(imageRoute, /one integrated co-created image/);
   assert.match(imageRoute, /drawn line is the essential structural source/);
   assert.match(imageRoute, /smooth uneven strokes/);
+  assert.match(imageRoute, /Apply exactly and only/);
+  assert.match(imageRoute, /context && !isConstrainedEdit/);
+  assert.doesNotMatch(imageRoute, /Add a subtle abstract background or surrounding layer/);
   assert.doesNotMatch(imageRoute, /displayed separately/);
   assert.match(landscape, /created-contribution-originals/);
+});
+
+test("co-creation requires and obeys an explicit visual edit request", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const imageRoute = await source("app/api/ai/image/route.ts");
+  assert.match(makePage, /requiresConstrainedImageDirection/);
+  assert.match(makePage, /requiresConstrainedImageDirection && !aiPrompt\.trim\(\)/);
+  assert.match(makePage, /requiresConstrainedImageDirection \? "" : \[words, reference, careReflection/);
+  assert.match(makePage, /AI verandert alleen wat jij noemt/);
+  assert.match(imageRoute, /isConstrainedEdit && !direction && !baseDirection/);
+  assert.match(imageRoute, /Do not add any new object/);
+  assert.match(imageRoute, /colour or background change is not permission to add decorative content/);
 });
 
 test("removing an input mode also removes the contribution behind it", async () => {
