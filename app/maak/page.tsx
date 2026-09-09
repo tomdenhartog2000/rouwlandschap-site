@@ -7,6 +7,7 @@ type InputMode = "write" | "photo" | "draw" | "sounddraw" | "voice" | "reference
 type AiPath = "none" | "together" | "translate";
 type AiForm = "image" | "text" | "motion";
 type SharingChoice = "take" | "online" | "here" | "future";
+type ExhibitionProcess = "" | "co-creation" | "proposal";
 type SonificationMode = "tone" | "score";
 type SonificationStyle = "quiet" | "warm" | "clear";
 type SonificationInstrument = "string_ensemble_1" | "acoustic_grand_piano" | "acoustic_guitar_nylon" | "flute";
@@ -57,6 +58,11 @@ function normaliseReferenceLink(value: string) {
   } catch {
     return "";
   }
+}
+
+function isValidContactEmail(value: string) {
+  const email = value.trim();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 const aiForms: Array<{ id: AiForm; title: string; text: string }> = [
@@ -127,6 +133,9 @@ export default function MaakEenRouwdier() {
   const [sharing, setSharing] = useState<SharingChoice>("take");
   const [isPubliclyConfirmed, setIsPubliclyConfirmed] = useState(false);
   const [showConsentDetails, setShowConsentDetails] = useState(false);
+  const [exhibitionProcess, setExhibitionProcess] = useState<ExhibitionProcess>("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPermission, setContactPermission] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [microphoneError, setMicrophoneError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -155,6 +164,8 @@ export default function MaakEenRouwdier() {
   const visibleTitle = title.trim() || "een rouwdier";
   const visibleDescription = cardDescription.trim();
   const validReferenceLink = normaliseReferenceLink(referenceLink);
+  const validContactEmail = isValidContactEmail(contactEmail);
+  const needsExhibitionFollowUp = sharing === "here" || sharing === "future";
   const hasAi = aiPath !== "none";
   const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || reference.trim() || validReferenceLink || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
   const hasImageForm = aiFormsSelected.includes("image");
@@ -640,6 +651,11 @@ export default function MaakEenRouwdier() {
       data.set("description", visibleDescription);
       data.set("kind", hasAiEndProduct ? "Beeld met AI" : sonificationUrl ? "Tekening met klank" : modes.includes("voice") ? "Geluidsopname" : modes.includes("draw") ? "Tekening" : modes.includes("photo") ? "Foto" : modes.includes("reference") ? "Verwijzing" : "Tekst");
       data.set("sharing", sharing);
+      if (needsExhibitionFollowUp) {
+        data.set("exhibitionProcess", exhibitionProcess);
+        data.set("contactEmail", contactEmail.trim());
+        data.set("contactPermission", String(contactPermission));
+      }
       if (aiMotion) data.set("motion", aiMotion);
       if (hasAiEndProduct) data.set("aiImage", await dataUrlToFile(aiImageDataUrl, "beeld-met-ai.png"));
       data.set("text", words);
@@ -853,7 +869,39 @@ export default function MaakEenRouwdier() {
 
     {step === 4 && <div><p className="eyebrow">4 van 5 · je rouwdier als kaartje</p><h1>Je rouwdier als kaartje</h1><p className="lead">We hebben alvast gebruikt wat je zelf hebt toegevoegd. Je kunt dit aanpassen, leegmaken of vervangen.</p><div className="card-editor"><CardPreview /><div className="card-fields"><label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label><label className="title-field">wat wil je erbij zeggen? <span>optioneel</span><textarea value={cardDescription} onChange={(event) => setCardDescription(event.target.value)} placeholder="Schrijf wat je wilt meegeven." aria-label="Toelichting bij je rouwdier" /></label></div></div>{aiImageDataUrl && aiPath === "translate" && hasOriginalVisual && <fieldset className="source-visual-choice"><legend>Wil je laten zien waar dit rouwdier begon?</legend><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "final"} onChange={() => setSourceVisualChoice("final")} />Alleen deze nieuwe versie bewaren</label><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "with-source"} onChange={() => setSourceVisualChoice("with-source")} />Laat ook mijn oorspronkelijke foto of tekening zien</label></fieldset>}<div className="completion-actions"><button type="button" className="secondary-button" onClick={downloadCard}>bewaar als afbeelding</button>{savedAudioUrl && <a className="secondary-button" href={savedAudioUrl} download={sonificationUrl ? "klank-van-de-tekening.wav" : "geluidsopname.webm"}>bewaar {sonificationUrl ? "klank" : "geluidsopname"}</a>}</div><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(3)}>terug</button><button type="button" className="primary-button" disabled={Boolean(aiImageDataUrl && aiPath === "translate" && hasOriginalVisual && !sourceVisualChoice)} onClick={() => setStep(5)}>kies waar het mag leven</button></div></div>}
 
-    {step === 5 && <div><p className="eyebrow">5 van 5 · waar mag het leven?</p><h1>Waar mag deze bijdrage leven?</h1><p className="lead">Je bijdrage blijft anoniem.</p><div className="choice-list sharing-list"><button type="button" className={sharing === "take" ? "is-selected" : ""} onClick={() => { setSharing("take"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Ik neem het weer mee</strong><span>Er verschijnt niets in het landschap.</span></button><button type="button" className={sharing === "online" ? "is-selected" : ""} onClick={() => { setSharing("online"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag in het online landschap leven</strong><span>Bezoekers kunnen jouw bijdrage daar openen.</span></button><button type="button" className={sharing === "here" ? "is-selected" : ""} onClick={() => { setSharing("here"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag bij deze opstelling leven</strong><span>Naast het online landschap kan het hier bij deze opstelling worden getoond. Niet alle rouwdieren krijgen hier een plek.</span></button><button type="button" className={sharing === "future" ? "is-selected" : ""} onClick={() => { setSharing("future"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag ook op andere plekken leven</strong><span>Ook niet alle rouwdieren worden elders getoond. Welke andere plekken dat zijn, is vooraf niet bekend.</span></button></div>{sharing !== "take" && <div className="consent-area"><label className="consent-field"><input type="checkbox" checked={isPubliclyConfirmed} onChange={(event) => setIsPubliclyConfirmed(event.target.checked)} /><span>Ik begrijp wat deze keuze inhoudt.</span></label><button type="button" className="consent-details-button" onClick={() => setShowConsentDetails(true)}>Lees de toelichting</button></div>}<p className="test-note">{hasShareableContent ? "Als je kiest voor het online landschap, verschijnt je rouwdier daar meteen en kunnen anderen het openen." : "Je kunt je rouwdier meenemen, of eerst nog iets toevoegen voordat het in het landschap kan leven."}</p>{saveError && <p className="save-error" role="alert">{saveError}</p>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(4)}>terug</button><button type="button" className="primary-button" disabled={isSaving || (sharing !== "take" && (!isPubliclyConfirmed || !hasShareableContent))} onClick={() => void finishContribution()}>{isSaving ? "even toevoegen…" : "rond af"}</button></div>{showConsentDetails && <div className="consent-modal" role="dialog" aria-modal="true" aria-labelledby="consent-title"><section><button type="button" aria-label="Sluit toelichting" onClick={() => setShowConsentDetails(false)}>×</button><p>{consentDetails.title}</p><h2 id="consent-title">Wat houdt deze keuze in?</h2><div>{consentDetails.text}</div></section></div>}</div>}
+    {step === 5 && <div>
+      <p className="eyebrow">5 van 5 · waar mag het leven?</p>
+      <h1>Waar mag deze bijdrage leven?</h1>
+      <p className="lead">In het landschap blijft je bijdrage anoniem.</p>
+      <div className="choice-list sharing-list">
+        <button type="button" className={sharing === "take" ? "is-selected" : ""} onClick={() => { setSharing("take"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setExhibitionProcess(""); setContactEmail(""); setContactPermission(false); setSaveError(""); }}><strong>Ik neem het weer mee</strong><span>Er verschijnt niets in het landschap.</span></button>
+        <button type="button" className={sharing === "online" ? "is-selected" : ""} onClick={() => { setSharing("online"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setExhibitionProcess(""); setContactEmail(""); setContactPermission(false); setSaveError(""); }}><strong>Het mag in het online landschap leven</strong><span>Bezoekers kunnen jouw bijdrage daar openen.</span></button>
+        <button type="button" className={sharing === "here" ? "is-selected" : ""} onClick={() => { setSharing("here"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag bij deze opstelling leven</strong><span>Naast het online landschap kan het hier bij deze opstelling worden getoond. Niet alle rouwdieren krijgen hier een plek.</span></button>
+        <button type="button" className={sharing === "future" ? "is-selected" : ""} onClick={() => { setSharing("future"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag ook op andere plekken leven</strong><span>Ook niet alle rouwdieren worden elders getoond. Welke andere plekken dat zijn, is vooraf niet bekend.</span></button>
+      </div>
+      {sharing !== "take" && <div className="consent-area"><label className="consent-field"><input type="checkbox" checked={isPubliclyConfirmed} onChange={(event) => setIsPubliclyConfirmed(event.target.checked)} /><span>Ik begrijp wat deze keuze inhoudt.</span></label><button type="button" className="consent-details-button" onClick={() => setShowConsentDetails(true)}>Lees de toelichting</button></div>}
+      <p className="test-note">{hasShareableContent ? "Als je kiest voor het online landschap, verschijnt je rouwdier daar meteen en kunnen anderen het openen." : "Je kunt je rouwdier meenemen, of eerst nog iets toevoegen voordat het in het landschap kan leven."}</p>
+      {saveError && <p className="save-error" role="alert">{saveError}</p>}
+      <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(4)}>terug</button><button type="button" className="primary-button" disabled={isSaving || (sharing !== "take" && (!isPubliclyConfirmed || !hasShareableContent))} onClick={() => needsExhibitionFollowUp ? setStep(7) : void finishContribution()}>{isSaving ? "even toevoegen…" : needsExhibitionFollowUp ? "verder" : "rond af"}</button></div>
+      {showConsentDetails && <div className="consent-modal" role="dialog" aria-modal="true" aria-labelledby="consent-title"><section><button type="button" aria-label="Sluit toelichting" onClick={() => setShowConsentDetails(false)}>×</button><p>{consentDetails.title}</p><h2 id="consent-title">Wat houdt deze keuze in?</h2><div>{consentDetails.text}</div></section></div>}
+    </div>}
+
+    {step === 7 && needsExhibitionFollowUp && <div>
+      <p className="eyebrow">nog één keuze · voor de tentoonstelling</p>
+      <h1>Hoe wil je hiermee verder?</h1>
+      <p className="lead">Als je rouwdier voor een tentoonstelling wordt gekozen, maakt de ontwerper het samen met jou geschikt voor die plek. Kies hoe je daaraan wilt bijdragen.</p>
+      <div className="choice-list exhibition-choice-list">
+        <button type="button" className={exhibitionProcess === "co-creation" ? "is-selected" : ""} onClick={() => { setExhibitionProcess("co-creation"); setSaveError(""); }}><strong>Ik wil het samen vormgeven</strong><span>Je werkt zelf verder aan het stuk, met begeleiding van de ontwerper.</span></button>
+        <button type="button" className={exhibitionProcess === "proposal" ? "is-selected" : ""} onClick={() => { setExhibitionProcess("proposal"); setSaveError(""); }}><strong>Ik wil eerst een voorstel ontvangen</strong><span>De ontwerper maakt een voorstel en bespreekt het met je voordat er iets wordt aangepast.</span></button>
+      </div>
+      <label className="title-field exhibition-email">e-mailadres<input type="email" inputMode="email" autoComplete="email" maxLength={254} value={contactEmail} onChange={(event) => { setContactEmail(event.target.value); setSaveError(""); }} placeholder="jij@voorbeeld.nl" aria-describedby="exhibition-email-note" /></label>
+      <p className="test-note" id="exhibition-email-note">Je e-mailadres is alleen zichtbaar voor de ontwerper. Het verschijnt niet in het landschap of op je kaartje.</p>
+      {contactEmail && !validContactEmail && <p className="save-error" role="alert">Vul een geldig e-mailadres in.</p>}
+      <label className="consent-field exhibition-contact-consent"><input type="checkbox" checked={contactPermission} onChange={(event) => setContactPermission(event.target.checked)} /><span>De ontwerper mag mij hierover per e-mail benaderen.</span></label>
+      <p className="test-note">Deze keuze is geen garantie dat je rouwdier wordt tentoongesteld. De ontwerper neemt contact met je op als het voor een opstelling wordt gekozen.</p>
+      {saveError && <p className="save-error" role="alert">{saveError}</p>}
+      <div className="step-actions"><button type="button" className="quiet-button" onClick={() => { setSaveError(""); setStep(5); }}>terug</button><button type="button" className="primary-button" disabled={isSaving || !exhibitionProcess || !validContactEmail || !contactPermission} onClick={() => void finishContribution()}>{isSaving ? "even toevoegen…" : "rond af"}</button></div>
+    </div>}
 
     {step === 6 && <div className="make-intro completion"><p className="eyebrow">klaar</p><h1>{sharing === "take" ? "Je rouwdier blijft bij jou." : "Je rouwdier heeft nu een plek gekregen."}</h1><p className="lead">{sharing === "take" ? "Er is niets aan het landschap of een opstelling toegevoegd. Wil je wel die van anderen bekijken?" : "Je hebt aangegeven waar deze bijdrage eventueel mag leven."}</p><a className="primary-button" href={savedContributionId ? `/verken?landschap=${landscape.id}&nieuw=${encodeURIComponent(savedContributionId)}` : `/verken?landschap=${landscape.id}`}>{sharing === "take" ? `bekijk de rouwdieren van anderen in het ${landscape.name}` : `bekijk jouw rouwdier en dat van anderen in het ${landscape.name}`}</a></div>}
     {step === 22 && aiFormsSelected.includes("text") && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiTextResult ? "Kijk even naar de tekstversie." : "Wat mag AI met je woorden doen?"}</h1><p className="lead">AI ordent alleen wat jij zelf hebt geschreven. Je kunt de tekst gebruiken, aanpassen of niet gebruiken.</p><label className="title-field">wat mag helderder of anders geordend? <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: houd mijn woorden, maar maak de volgorde rustiger" aria-label="Wat mag AI met je woorden doen" /></label><label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik geef toestemming om mijn woorden met AI te ordenen.</span><small>OpenAI ordent ze zonder nieuwe inhoud toe te voegen. Alleen wat ik zelf kies komt op mijn kaartje.</small></label>{!aiTextResult ? <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent} onClick={() => void createAiText()}>{isGenerating ? "tekst wordt geordend…" : "orden mijn woorden"}</button></div> : <><div className="ai-result ai-text-result">{aiTextResult}</div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{feedbackDirection === "adjust" && <div className="feedback-followup"><p>Vertel wat je anders wilt.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiText(feedback)}>{isGenerating ? "tekst wordt geordend…" : "maak een nieuwe versie"}</button></div>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust"} onClick={() => { if (feedbackDirection === "keep") setWords(aiTextResult); if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setStep(3); return; } setStep(nextStepAfterText); }}>verder</button></div></>}{generationError && <p className="save-error" role="alert">{generationError}</p>}</div>}

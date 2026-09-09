@@ -542,6 +542,13 @@ body:has(.admin-page) {
 .transcript-choice small { grid-column: 2; color: #6b655b; font-size: 13px; line-height: 1.4; }
 .consent-area { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 14px; margin-top: 18px; }
 .consent-area .consent-field { margin: 0; }
+.exhibition-email { display: grid; gap: 8px; margin-top: 26px; }
+.exhibition-email input { width: 100%; max-width: 430px; padding: 10px 0; }
+.exhibition-contact-consent { display: flex; gap: 10px; align-items: flex-start; margin: 20px 0; }
+.exhibition-contact-consent input { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 2px; }
+.admin-contact { display: grid; gap: 4px; margin-top: 10px; padding-left: 12px; border-left: 2px solid #bcb4a7; }
+.admin-contact p { margin: 0; color: #2e2b26; }
+.admin-contact a { color: #6b655b; text-underline-offset: 3px; }
 .consent-details-button {
   padding: 0;
   color: #6b655b;

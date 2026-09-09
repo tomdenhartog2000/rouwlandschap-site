@@ -133,3 +133,27 @@ test("a title is valid content and photo selection is limited to five", async ()
   assert.match(page, /maximaal \$\{MAX_PHOTOS\} foto/);
   assert.match(route, /!providedTitle/);
 });
+
+test("exhibition sharing adds a private, required collaboration follow-up", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const route = await source("app/api/contributions/route.ts");
+  const adminRoute = await source("app/api/admin/contributions/route.ts");
+  const adminPage = await source("app/beheer/page.tsx");
+  const schema = await source("db/schema.ts");
+  const migration = await source("drizzle/0007_exhibition_contact.sql");
+  const publicMapper = route.slice(route.indexOf("function toLandscapeContribution"), route.indexOf("export async function GET"));
+
+  assert.match(makePage, /sharing === "here" \|\| sharing === "future"/);
+  assert.match(makePage, /Ik wil het samen vormgeven/);
+  assert.match(makePage, /Ik wil eerst een voorstel ontvangen/);
+  assert.match(makePage, /type="email"/);
+  assert.match(makePage, /!exhibitionProcess \|\| !validContactEmail \|\| !contactPermission/);
+  assert.match(makePage, /data\.set\("contactPermission", String\(contactPermission\)\)/);
+  assert.match(route, /needsExhibitionContact && \(!exhibitionProcess \|\| !contactEmail \|\| !hasContactPermission\)/);
+  assert.ok(route.indexOf("needsExhibitionContact &&") < route.indexOf("UPLOADS.put"));
+  assert.doesNotMatch(publicMapper, /contactEmail|contactConsentAt|exhibitionProcess/);
+  assert.match(adminRoute, /contactEmail: row\.contactEmail/);
+  assert.match(adminPage, /mailto:/);
+  assert.match(schema, /contactEmail: text\("contact_email"\)/);
+  assert.match(migration, /ADD COLUMN contact_email/);
+});

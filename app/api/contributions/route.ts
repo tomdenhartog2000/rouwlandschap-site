@@ -37,6 +37,11 @@ function safeReferenceLink(value: string) {
   }
 }
 
+function safeContactEmail(value: string) {
+  const email = value.trim().toLowerCase();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
 function toLandscapeContribution(row: typeof contributions.$inferSelect): LandscapeContribution {
   const attachments = readAttachments(row.attachmentsJson);
   return {
@@ -86,6 +91,17 @@ export async function POST(request: Request) {
     const exactDrawing = data.get("exactDrawing") === "true";
     const audioFile = audio instanceof File && audio.size ? audio : null;
     const aiImageFile = aiImage instanceof File && aiImage.size ? aiImage : null;
+    const requestedSharing = stringField(data, "sharing", 24);
+    const sharing = requestedSharing === "here" || requestedSharing === "future" ? requestedSharing : "online";
+    const needsExhibitionContact = sharing === "here" || sharing === "future";
+    const requestedExhibitionProcess = stringField(data, "exhibitionProcess", 32);
+    const exhibitionProcess = requestedExhibitionProcess === "co-creation" || requestedExhibitionProcess === "proposal" ? requestedExhibitionProcess : "";
+    const contactEmail = safeContactEmail(stringField(data, "contactEmail", 254));
+    const hasContactPermission = data.get("contactPermission") === "true";
+
+    if (needsExhibitionContact && (!exhibitionProcess || !contactEmail || !hasContactPermission)) {
+      return Response.json({ error: "Kies hoe je wilt samenwerken en vul een geldig e-mailadres in." }, { status: 400 });
+    }
 
     if (photoFiles.some((file) => !file.type.startsWith("image/") || file.size > MAX_IMAGE_BYTES) || (drawingFile && (!drawingFile.type.startsWith("image/") || drawingFile.size > MAX_IMAGE_BYTES)) || (aiImageFile && (!aiImageFile.type.startsWith("image/") || aiImageFile.size > MAX_IMAGE_BYTES))) {
       return Response.json({ error: "Een afbeelding is te groot of heeft geen geldig afbeeldingsformaat." }, { status: 400 });
@@ -120,8 +136,6 @@ export async function POST(request: Request) {
     }
     const requestedMotion = stringField(data, "motion", 24);
     const motion = requestedMotion === "breathe" || requestedMotion === "heartbeat" || requestedMotion === "drift" || requestedMotion === "sway" ? requestedMotion : "";
-    const requestedSharing = stringField(data, "sharing", 24);
-    const sharing = requestedSharing === "here" || requestedSharing === "future" ? requestedSharing : "online";
     const landscape = (await activeLandscape()).id;
     const [row] = await getDb().insert(contributions).values({
       id,
@@ -135,6 +149,9 @@ export async function POST(request: Request) {
       attachmentsJson: JSON.stringify(attachments),
       landscape,
       sharing,
+      exhibitionProcess: needsExhibitionContact ? exhibitionProcess : "",
+      contactEmail: needsExhibitionContact ? contactEmail : "",
+      contactConsentAt: needsExhibitionContact ? now : 0,
       status: "visible",
       createdAt: now,
     }).returning();

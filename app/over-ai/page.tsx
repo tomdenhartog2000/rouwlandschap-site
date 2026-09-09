@@ -11,6 +11,7 @@ export default function OverAi() {
           <h2>Als je iets deelt</h2>
           <p>Alleen wanneer je aan het eind kiest dat je rouwdier online, bij deze opstelling of op andere plekken mag leven, wordt het online bewaard. Andere bezoekers kunnen het dan in het online landschap openen. Kies je om het mee te nemen, dan wordt er niets opgeslagen.</p>
           <p>Dat kan een foto, tekening, tekst, geluidsopname, verwijzing, titel of toelichting zijn. Deel daarom alleen wat je ook aan bezoekers wilt laten zien. Je naam wordt niet gevraagd, maar een bijdrage kan natuurlijk wel herkenbare informatie bevatten.</p>
+          <p>Kies je voor een opstelling of een andere plek, dan kun je een e-mailadres achterlaten zodat de ontwerper contact met je kan opnemen. Dat adres is alleen zichtbaar in het beveiligde beheer, wordt alleen voor die samenwerking gebruikt en verschijnt niet in het landschap of op je kaartje.</p>
           <p>De bijdrage blijft bewaard als onderdeel van dit project. De ontwerper van de tentoonstelling beheert de bijdragen en kan ze verbergen of verwijderen, bijvoorbeeld wanneer ze ongepast zijn.</p>
         </section>
 
