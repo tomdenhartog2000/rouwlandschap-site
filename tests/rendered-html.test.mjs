@@ -107,6 +107,22 @@ test("the old landscape path redirects to the single visitor experience", async 
   assert.match(visitorRoute, /components\/Landschap/);
 });
 
+test("look-only mode hides every way to add a contribution", async () => {
+  const landscape = await source("components/Landschap.tsx");
+  const visual = await source("public/landschap-visual.html");
+  assert.match(landscape, /canAdd: !kijkAlleen/);
+  assert.match(visual, /\.hidden = event\.data\.canAdd === false/);
+});
+
+test("motion consent stays concise and moderation names the exhibition designer", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const aiPage = await source("app/over-ai/page.tsx");
+  assert.match(makePage, /Ik geef toestemming voor deze AI-bewerking/);
+  assert.doesNotMatch(makePage, /mijn woorden tijdelijk naar OpenAI gaan/);
+  assert.match(aiPage, /De ontwerper van de tentoonstelling beheert de bijdragen/);
+  assert.match(aiPage, /bijvoorbeeld wanneer ze ongepast zijn/);
+});
+
 test("a title is valid content and photo selection is limited to five", async () => {
   const page = await source("app/maak/page.tsx");
   const route = await source("app/api/contributions/route.ts");

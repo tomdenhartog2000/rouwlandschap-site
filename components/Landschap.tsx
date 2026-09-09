@@ -94,7 +94,7 @@ export default function Landschap() {
   }, []);
 
   const configureLandscapeMenu = () => {
-    iframeRef.current?.contentWindow?.postMessage({ type: "rouwdier:configure-landscapes", landscapes: visitorLandscapes, selected: landscape.id }, "*");
+    iframeRef.current?.contentWindow?.postMessage({ type: "rouwdier:configure-landscapes", landscapes: visitorLandscapes, selected: landscape.id, canAdd: !kijkAlleen }, "*");
   };
 
   useEffect(() => { configureLandscapeMenu(); }, [landscape.id, visitorLandscapes]);

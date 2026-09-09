@@ -1516,6 +1516,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       window.addEventListener(&#x27;message&#x27;, (event) =&gt; {
         if (event.data?.type !== &#x27;rouwdier:configure-landscapes&#x27;) return;
+        root.querySelector(&#x27;[data-open-maakruimte=&quot;true&quot;]&#x27;).hidden = event.data.canAdd === false;
         const visible = new Set((event.data.landscapes || []).map((item) =&gt; item.id));
         root.querySelectorAll(&#x27;.landschap-optie&#x27;).forEach((option) =&gt; {
           const isSelected = option.dataset.landschap === event.data.selected;
