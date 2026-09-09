@@ -93,13 +93,18 @@ export async function POST(request: Request) {
     const aiImageFile = aiImage instanceof File && aiImage.size ? aiImage : null;
     const requestedSharing = stringField(data, "sharing", 24);
     const sharing = requestedSharing === "here" || requestedSharing === "future" ? requestedSharing : "online";
-    const needsExhibitionContact = sharing === "here" || sharing === "future";
+    const needsExhibitionFollowUp = sharing === "here" || sharing === "future";
     const requestedExhibitionProcess = stringField(data, "exhibitionProcess", 32);
-    const exhibitionProcess = requestedExhibitionProcess === "co-creation" || requestedExhibitionProcess === "proposal" ? requestedExhibitionProcess : "";
+    const exhibitionProcess = requestedExhibitionProcess === "co-creation" || requestedExhibitionProcess === "proposal" || requestedExhibitionProcess === "designer" ? requestedExhibitionProcess : "";
+    const needsExhibitionContact = exhibitionProcess === "co-creation" || exhibitionProcess === "proposal";
     const contactEmail = safeContactEmail(stringField(data, "contactEmail", 254));
     const hasContactPermission = data.get("contactPermission") === "true";
 
-    if (needsExhibitionContact && (!exhibitionProcess || !contactEmail || !hasContactPermission)) {
+    if (needsExhibitionFollowUp && !exhibitionProcess) {
+      return Response.json({ error: "Kies hoe je wilt dat de ontwerper met je rouwdier verdergaat." }, { status: 400 });
+    }
+
+    if (needsExhibitionContact && (!contactEmail || !hasContactPermission)) {
       return Response.json({ error: "Kies hoe je wilt samenwerken en vul een geldig e-mailadres in." }, { status: 400 });
     }
 
@@ -149,7 +154,7 @@ export async function POST(request: Request) {
       attachmentsJson: JSON.stringify(attachments),
       landscape,
       sharing,
-      exhibitionProcess: needsExhibitionContact ? exhibitionProcess : "",
+      exhibitionProcess: needsExhibitionFollowUp ? exhibitionProcess : "",
       contactEmail: needsExhibitionContact ? contactEmail : "",
       contactConsentAt: needsExhibitionContact ? now : 0,
       status: "visible",

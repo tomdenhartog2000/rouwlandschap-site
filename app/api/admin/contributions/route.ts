@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     referenceLink: row.referenceLink,
     landscape: row.landscape,
     sharing: row.sharing === "here" || row.sharing === "future" ? row.sharing : "online",
-    exhibitionProcess: row.exhibitionProcess === "co-creation" || row.exhibitionProcess === "proposal" ? row.exhibitionProcess : "",
+    exhibitionProcess: row.exhibitionProcess === "co-creation" || row.exhibitionProcess === "proposal" || row.exhibitionProcess === "designer" ? row.exhibitionProcess : "",
     contactEmail: row.contactEmail,
     contactConsentAt: row.contactConsentAt,
     status: row.status,

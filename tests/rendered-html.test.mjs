@@ -172,7 +172,7 @@ test("a title is valid content and photo selection is limited to five", async ()
   assert.match(route, /!providedTitle/);
 });
 
-test("exhibition sharing adds a private, required collaboration follow-up", async () => {
+test("exhibition sharing supports contact or an anonymous designer follow-up", async () => {
   const makePage = await source("app/maak/page.tsx");
   const route = await source("app/api/contributions/route.ts");
   const adminRoute = await source("app/api/admin/contributions/route.ts");
@@ -184,14 +184,30 @@ test("exhibition sharing adds a private, required collaboration follow-up", asyn
   assert.match(makePage, /sharing === "here" \|\| sharing === "future"/);
   assert.match(makePage, /Ik wil het samen vormgeven/);
   assert.match(makePage, /Ik wil eerst een voorstel ontvangen/);
+  assert.match(makePage, /Ik wil anoniem blijven/);
+  assert.match(makePage, /exhibitionProcess === "designer"/);
   assert.match(makePage, /type="email"/);
-  assert.match(makePage, /!exhibitionProcess \|\| !validContactEmail \|\| !contactPermission/);
+  assert.match(makePage, /needsExhibitionContact && \(!validContactEmail \|\| !contactPermission\)/);
   assert.match(makePage, /data\.set\("contactPermission", String\(contactPermission\)\)/);
-  assert.match(route, /needsExhibitionContact && \(!exhibitionProcess \|\| !contactEmail \|\| !hasContactPermission\)/);
+  assert.match(route, /requestedExhibitionProcess === "designer"/);
+  assert.match(route, /needsExhibitionFollowUp && !exhibitionProcess/);
+  assert.match(route, /needsExhibitionContact && \(!contactEmail \|\| !hasContactPermission\)/);
   assert.ok(route.indexOf("needsExhibitionContact &&") < route.indexOf("UPLOADS.put"));
+  assert.match(route, /contactEmail: needsExhibitionContact \? contactEmail : ""/);
+  assert.match(route, /contactConsentAt: needsExhibitionContact \? now : 0/);
   assert.doesNotMatch(publicMapper, /contactEmail|contactConsentAt|exhibitionProcess/);
+  assert.match(adminRoute, /row\.exhibitionProcess === "designer"/);
   assert.match(adminRoute, /contactEmail: row\.contactEmail/);
+  assert.match(adminPage, /Ontwerper mag het zonder contact verder vormgeven/);
   assert.match(adminPage, /mailto:/);
   assert.match(schema, /contactEmail: text\("contact_email"\)/);
   assert.match(migration, /ADD COLUMN contact_email/);
+});
+
+test("the card QR first opens the explanation page and says visitors can look around", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  assert.match(makePage, /Meer weten over rouwdieren\?/);
+  assert.match(makePage, /Scan de QR-code en kijk eventueel rond/);
+  assert.match(makePage, /tussen die van anderen\./);
+  assert.match(makePage, /window\.location\.origin\}\/over-rouwdieren/);
 });

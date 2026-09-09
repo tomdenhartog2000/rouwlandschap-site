@@ -8,7 +8,7 @@ type AiPath = "none" | "together" | "translate";
 type AiForm = "image" | "text" | "motion";
 type AiImageRequest = "initial" | "adjust" | "again";
 type SharingChoice = "take" | "online" | "here" | "future";
-type ExhibitionProcess = "" | "co-creation" | "proposal";
+type ExhibitionProcess = "" | "co-creation" | "proposal" | "designer";
 type SonificationMode = "tone" | "score";
 type SonificationStyle = "quiet" | "warm" | "clear";
 type SonificationInstrument = "string_ensemble_1" | "acoustic_grand_piano" | "acoustic_guitar_nylon" | "flute";
@@ -167,6 +167,7 @@ export default function MaakEenRouwdier() {
   const validReferenceLink = normaliseReferenceLink(referenceLink);
   const validContactEmail = isValidContactEmail(contactEmail);
   const needsExhibitionFollowUp = sharing === "here" || sharing === "future";
+  const needsExhibitionContact = exhibitionProcess === "co-creation" || exhibitionProcess === "proposal";
   const hasAi = aiPath !== "none";
   const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || reference.trim() || validReferenceLink || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
   const hasImageForm = aiFormsSelected.includes("image");
@@ -656,8 +657,10 @@ export default function MaakEenRouwdier() {
       data.set("sharing", sharing);
       if (needsExhibitionFollowUp) {
         data.set("exhibitionProcess", exhibitionProcess);
-        data.set("contactEmail", contactEmail.trim());
-        data.set("contactPermission", String(contactPermission));
+        if (needsExhibitionContact) {
+          data.set("contactEmail", contactEmail.trim());
+          data.set("contactPermission", String(contactPermission));
+        }
       }
       if (aiMotion) data.set("motion", aiMotion);
       if (hasAiEndProduct) data.set("aiImage", await dataUrlToFile(aiImageDataUrl, "beeld-met-ai.png"));
@@ -807,7 +810,8 @@ export default function MaakEenRouwdier() {
     }
     const projectFooterTop = footerTop + (hasReferenceQr ? 104 : 26);
     context.fillText("Meer weten over rouwdieren?", inset + padding, projectFooterTop);
-    context.fillText("Scan de QR-code.", inset + padding, projectFooterTop + 21);
+    context.fillText("Scan de QR-code en kijk eventueel rond", inset + padding, projectFooterTop + 21);
+    context.fillText("tussen die van anderen.", inset + padding, projectFooterTop + 42);
     const qrUrl = `${window.location.origin}/over-rouwdieren`;
     const qrImage = await new Promise<HTMLImageElement | null>((resolve) => {
       QRCode.toDataURL(qrUrl, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
@@ -859,7 +863,7 @@ export default function MaakEenRouwdier() {
   };
 
   const OriginalVisualPreview = ({ labelled = false }: { labelled?: boolean }) => originalVisuals.length ? <div className="card-original-visuals">{labelled && <small>jouw oorspronkelijke bijdrage</small>}<div className={originalVisuals.length > 1 ? "card-photo-grid" : ""}>{originalVisuals.map((visual, index) => <img key={`${visual.src}-${index}`} className={originalVisuals.length === 1 ? `card-image${visual.kind === "drawing" ? " card-drawing" : ""}` : ""} src={visual.src} alt={visual.alt} />)}</div></div> : null;
-  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></div>{showOriginalVisualsWithAi && <OriginalVisualPreview labelled />}</> : <OriginalVisualPreview />}{!aiImageDataUrl && !originalVisuals.length && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{words.trim() && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}{reference.trim() && <p className="card-reference">{reference}</p>}{validReferenceLink && <p className="card-reference">link naar de verwijzing toegevoegd</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
+  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></div>{showOriginalVisualsWithAi && <OriginalVisualPreview labelled />}</> : <OriginalVisualPreview />}{!aiImageDataUrl && !originalVisuals.length && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{words.trim() && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}{reference.trim() && <p className="card-reference">{reference}</p>}{validReferenceLink && <p className="card-reference">link naar de verwijzing toegevoegd</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code en kijk eventueel rond tussen die van anderen.</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
     {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Waar kan jouw rouwdier uit bestaan?</h1><p className="lead">Je kunt iets vastleggen, iets vormgeven, of verschillende vormen combineren.</p><div className="input-groups">{inputGroups.map((group) => <section className="input-group" key={group.id} aria-labelledby={`input-group-${group.id}`}><h2 id={`input-group-${group.id}`}>{group.title}</h2><div className="input-options">{group.inputIds.map((inputId) => { const input = inputs.find((item) => item.id === inputId)!; const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div></section>)}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
@@ -892,18 +896,21 @@ export default function MaakEenRouwdier() {
     {step === 7 && needsExhibitionFollowUp && <div>
       <p className="eyebrow">nog één keuze · voor de tentoonstelling</p>
       <h1>Hoe wil je hiermee verder?</h1>
-      <p className="lead">Als je rouwdier voor een tentoonstelling wordt gekozen, maakt de ontwerper het samen met jou geschikt voor die plek. Kies hoe je daaraan wilt bijdragen.</p>
+      <p className="lead">Als je rouwdier voor een tentoonstelling wordt gekozen, wordt het geschikt gemaakt voor die plek. Kies of je daarbij betrokken wilt blijven.</p>
       <div className="choice-list exhibition-choice-list">
         <button type="button" className={exhibitionProcess === "co-creation" ? "is-selected" : ""} onClick={() => { setExhibitionProcess("co-creation"); setSaveError(""); }}><strong>Ik wil het samen vormgeven</strong><span>Je werkt zelf verder aan het stuk, met begeleiding van de ontwerper.</span></button>
         <button type="button" className={exhibitionProcess === "proposal" ? "is-selected" : ""} onClick={() => { setExhibitionProcess("proposal"); setSaveError(""); }}><strong>Ik wil eerst een voorstel ontvangen</strong><span>De ontwerper maakt een voorstel en bespreekt het met je voordat er iets wordt aangepast.</span></button>
+        <button type="button" className={exhibitionProcess === "designer" ? "is-selected" : ""} onClick={() => { setExhibitionProcess("designer"); setContactEmail(""); setContactPermission(false); setSaveError(""); }}><strong>Ik wil anoniem blijven</strong><span>Je laat geen contactgegevens achter. De ontwerper bepaalt of en hoe het voor de tentoonstelling wordt aangepast.</span></button>
       </div>
-      <label className="title-field exhibition-email">e-mailadres<input type="email" inputMode="email" autoComplete="email" maxLength={254} value={contactEmail} onChange={(event) => { setContactEmail(event.target.value); setSaveError(""); }} placeholder="jij@voorbeeld.nl" aria-describedby="exhibition-email-note" /></label>
-      <p className="test-note" id="exhibition-email-note">Je e-mailadres is alleen zichtbaar voor de ontwerper. Het verschijnt niet in het landschap of op je kaartje.</p>
-      {contactEmail && !validContactEmail && <p className="save-error" role="alert">Vul een geldig e-mailadres in.</p>}
-      <label className="consent-field exhibition-contact-consent"><input type="checkbox" checked={contactPermission} onChange={(event) => setContactPermission(event.target.checked)} /><span>De ontwerper mag mij hierover per e-mail benaderen.</span></label>
-      <p className="test-note">Deze keuze is geen garantie dat je rouwdier wordt tentoongesteld. De ontwerper neemt contact met je op als het voor een opstelling wordt gekozen.</p>
+      {needsExhibitionContact && <>
+        <label className="title-field exhibition-email">e-mailadres<input type="email" inputMode="email" autoComplete="email" maxLength={254} value={contactEmail} onChange={(event) => { setContactEmail(event.target.value); setSaveError(""); }} placeholder="jij@voorbeeld.nl" aria-describedby="exhibition-email-note" /></label>
+        <p className="test-note" id="exhibition-email-note">Je e-mailadres is alleen zichtbaar voor de ontwerper. Het verschijnt niet in het landschap of op je kaartje.</p>
+        {contactEmail && !validContactEmail && <p className="save-error" role="alert">Vul een geldig e-mailadres in.</p>}
+        <label className="consent-field exhibition-contact-consent"><input type="checkbox" checked={contactPermission} onChange={(event) => setContactPermission(event.target.checked)} /><span>De ontwerper mag mij hierover per e-mail benaderen.</span></label>
+      </>}
+      {exhibitionProcess && <p className="test-note">{exhibitionProcess === "designer" ? "Deze keuze is geen garantie dat je rouwdier wordt tentoongesteld. De ontwerper bepaalt of en hoe het voor een opstelling wordt aangepast." : "Deze keuze is geen garantie dat je rouwdier wordt tentoongesteld. De ontwerper neemt contact met je op als het voor een opstelling wordt gekozen."}</p>}
       {saveError && <p className="save-error" role="alert">{saveError}</p>}
-      <div className="step-actions"><button type="button" className="quiet-button" onClick={() => { setSaveError(""); setStep(5); }}>terug</button><button type="button" className="primary-button" disabled={isSaving || !exhibitionProcess || !validContactEmail || !contactPermission} onClick={() => void finishContribution()}>{isSaving ? "even toevoegen…" : "rond af"}</button></div>
+      <div className="step-actions"><button type="button" className="quiet-button" onClick={() => { setSaveError(""); setStep(5); }}>terug</button><button type="button" className="primary-button" disabled={isSaving || !exhibitionProcess || (needsExhibitionContact && (!validContactEmail || !contactPermission))} onClick={() => void finishContribution()}>{isSaving ? "even toevoegen…" : "rond af"}</button></div>
     </div>}
 
     {step === 6 && <div className="make-intro completion"><p className="eyebrow">klaar</p><h1>{sharing === "take" ? "Je rouwdier blijft bij jou." : "Je rouwdier heeft nu een plek gekregen."}</h1><p className="lead">{sharing === "take" ? "Er is niets aan het landschap of een opstelling toegevoegd. Wil je wel die van anderen bekijken?" : "Je hebt aangegeven waar deze bijdrage eventueel mag leven."}</p><a className="primary-button" href={savedContributionId ? `/verken?landschap=${landscape.id}&nieuw=${encodeURIComponent(savedContributionId)}` : `/verken?landschap=${landscape.id}`}>{sharing === "take" ? `bekijk de rouwdieren van anderen in het ${landscape.name}` : `bekijk jouw rouwdier en dat van anderen in het ${landscape.name}`}</a></div>}
