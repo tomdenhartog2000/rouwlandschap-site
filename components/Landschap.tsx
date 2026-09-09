@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 import type { LandscapeContribution } from "@/lib/contributions";
 
 type FullscreenDocument = Document & { webkitExitFullscreen?: () => Promise<void>; webkitFullscreenElement?: Element; };
@@ -61,6 +62,7 @@ function placementFor(id: string, offset = 0) {
 }
 
 export default function Landschap() {
+  const router = useRouter();
   const [kijkAlleen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("kijk") === "1");
   const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
   const [visitorLandscapes, setVisitorLandscapes] = useState<Array<{ id: string; name: string }>>([]);
@@ -142,23 +144,23 @@ export default function Landschap() {
 
   useEffect(() => {
     const openMakeSpace = (event: MessageEvent) => {
-      if (event.data?.type === "rouwdier:open-make" && !kijkAlleen) window.location.assign("/maak");
+      if (event.data?.type === "rouwdier:open-make" && !kijkAlleen) router.push("/maak");
       if (event.data?.type === "rouwdier:landscape-ready") configureLandscapeMenu();
     };
     window.addEventListener("message", openMakeSpace);
     return () => window.removeEventListener("message", openMakeSpace);
-  }, [kijkAlleen, visitorLandscapes]);
+  }, [kijkAlleen, visitorLandscapes, router]);
 
   useEffect(() => {
     let typed = "";
     const openBeheer = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey || event.key.length !== 1) return;
       typed = `${typed}${event.key}`.slice(-6);
-      if (typed === "417435") window.location.assign("/beheer");
+      if (typed === "417435") router.push("/beheer");
     };
     window.addEventListener("keydown", openBeheer);
     return () => window.removeEventListener("keydown", openBeheer);
-  }, []);
+  }, [router]);
 
   const selectLandscape = (next: { id: string; name: string }) => {
     const url = new URL(window.location.href);
@@ -203,7 +205,7 @@ export default function Landschap() {
           <strong>{landscape.name}</strong>
           {visitorLandscapes.filter((item) => item.id !== landscape.id).length > 0 && <><div className="visitor-menu-divider" /><p>andere landschappen</p>{visitorLandscapes.filter((item) => item.id !== landscape.id).map((item) => <button key={item.id} type="button" onClick={() => selectLandscape(item)}>{item.name}</button>)}</>}
           {!kijkAlleen && <><div className="visitor-menu-divider" />
-          <button type="button" className="visitor-make-link" onClick={() => window.location.assign("/maak")}>Wil jij iets toevoegen?</button></>}
+          <button type="button" className="visitor-make-link" onClick={() => router.push("/maak")}>Wil jij iets toevoegen?</button></>}
         </div>}
       </div>
       {contributions.map((contribution, index) => {

@@ -18,6 +18,19 @@ test("the entry page keeps both ways into the experience open", async () => {
   assert.match(page, /href="\/over-ai"/);
 });
 
+test("internal navigation stays inside the app without changing QR generation", async () => {
+  const paths = ["app/page.tsx", "app/over-ai/page.tsx", "app/over-rouwdieren/page.tsx", "app/maak/page.tsx", "app/beheer/page.tsx"];
+  const pages = (await Promise.all(paths.map(source))).join("\n");
+  const landscape = await source("components/Landschap.tsx");
+
+  assert.match(pages, /from "next\/link"/);
+  assert.doesNotMatch(pages, /<a [^>]*href="\//);
+  assert.match(landscape, /useRouter/);
+  assert.doesNotMatch(landscape, /window\.location\.assign\("\//);
+  assert.match(pages, /import QRCode from "qrcode"/);
+  assert.match(pages, /QRCode\.toDataURL/);
+});
+
 test("a new contribution starts without a selected input and cannot be shared empty", async () => {
   const page = await source("app/maak/page.tsx");
   assert.match(page, /useState<InputMode\[\]>\(\[\]\)/);
