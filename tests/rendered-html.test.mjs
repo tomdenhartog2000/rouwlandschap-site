@@ -72,6 +72,17 @@ test("co-creation requires and obeys an explicit visual edit request", async () 
   assert.match(imageRoute, /colour or background change is not permission to add decorative content/);
 });
 
+test("translation can freely reinterpret drawings, including sound drawings", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const imageRoute = await source("app/api/ai/image/route.ts");
+  assert.match(makePage, /modes\.includes\("sounddraw"\) \? "sounddrawing" : "drawing"/);
+  assert.match(imageRoute, /sourceKind === "drawing" \|\| sourceKind === "sounddrawing"/);
+  assert.match(imageRoute, /sound-drawing as a visual trace of movement, rhythm, and sound/);
+  assert.match(imageRoute, /not as a contour that must be preserved/);
+  assert.match(imageRoute, /visually developed and expressive/);
+  assert.match(imageRoute, /you may introduce new visual elements/);
+});
+
 test("changing an AI image builds on it while looking again restarts from the original", async () => {
   const page = await source("app/maak/page.tsx");
   assert.match(page, /type AiImageRequest = "initial" \| "adjust" \| "again"/);

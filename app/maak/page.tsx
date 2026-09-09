@@ -593,7 +593,7 @@ export default function MaakEenRouwdier() {
       data.set("baseDirection", "");
       data.set("revision", String(request === "adjust"));
       data.set("aiPath", aiPath);
-      data.set("sourceKind", photos[0] ? "photo" : drawingDataUrl ? "drawing" : "none");
+      data.set("sourceKind", photos[0] ? "photo" : drawingDataUrl ? modes.includes("sounddraw") ? "sounddrawing" : "drawing" : "none");
       data.set("context", requiresConstrainedImageDirection ? "" : [words, reference, careReflection, transcriptContext].filter(Boolean).join("\n"));
       const originalSource = photos[0]?.dataUrl || drawingDataUrl || "";
       const source = request === "adjust" && aiImageDataUrl ? aiImageDataUrl : originalSource;
