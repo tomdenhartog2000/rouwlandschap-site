@@ -41,15 +41,49 @@ test("AI options require clear consent, stay optional, and can be combined", asy
   assert.doesNotMatch(page, /achtergrond of extra beeldlaag/);
 });
 
-test("a drawing stays an exact layer when AI adds to it", async () => {
+test("AI keeps originals separate and uses a drawing as its structural source", async () => {
   const makePage = await source("app/maak/page.tsx");
   const imageRoute = await source("app/api/ai/image/route.ts");
   const landscape = await source("components/Landschap.tsx");
-  assert.match(makePage, /keepDrawingExact/);
-  assert.match(makePage, /card-exact-drawing/);
-  assert.match(makePage, /ai-result.*card-exact-drawing/);
-  assert.match(imageRoute, /Return the surrounding layer or background only/);
-  assert.match(landscape, /created-contribution-exact-drawing/);
+  assert.match(makePage, /keepsOriginalVisuals/);
+  assert.match(makePage, /OriginalVisualPreview/);
+  assert.doesNotMatch(makePage, /card-exact-drawing/);
+  assert.match(imageRoute, /structural source/);
+  assert.match(imageRoute, /smooth uneven strokes/);
+  assert.match(imageRoute, /original contribution is preserved and displayed separately/);
+  assert.match(landscape, /created-contribution-originals/);
+});
+
+test("removing an input mode also removes the contribution behind it", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.match(page, /if \(mode === "write"\) setWords\(""\)/);
+  assert.match(page, /setPhotos\(\[\]\)/);
+  assert.match(page, /setAudioUrl\(""\)/);
+  assert.match(page, /setReference\(""\)/);
+  assert.match(page, /setDrawingDataUrl\(""\)/);
+});
+
+test("a single drawing tap becomes visible and a blank canvas is not saved", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.match(page, /context\.arc\(point\.x, point\.y/);
+  assert.match(page, /drawingHasMarksRef\.current = true/);
+  assert.match(page, /canvasRef\.current && drawingHasMarksRef\.current/);
+});
+
+test("references are normalised, validated and remain visible on the card", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.match(page, /function normaliseReferenceLink/);
+  assert.match(page, /const validReferenceLink = normaliseReferenceLink\(referenceLink\)/);
+  assert.match(page, /card-reference/);
+  assert.match(page, /data\.set\("referenceLink", validReferenceLink\)/);
+});
+
+test("motion AI accepts a visual contribution without requiring words", async () => {
+  const page = await source("app/maak/page.tsx");
+  const route = await source("app/api/ai/text/route.ts");
+  assert.match(page, /hasVisualInput \}\) \}\)/);
+  assert.match(route, /direction \|\| data\.hasVisualInput/);
+  assert.match(route, /Er is een visuele bijdrage/);
 });
 
 test("the card does not duplicate writing and keeps the reflection editable", async () => {

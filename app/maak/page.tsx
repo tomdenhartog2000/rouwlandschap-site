@@ -47,6 +47,18 @@ const inputGroups: Array<{ id: string; title: string; inputIds: InputMode[] }> =
 ];
 const MAX_PHOTOS = 5;
 
+function normaliseReferenceLink(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".") ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 const aiForms: Array<{ id: AiForm; title: string; text: string }> = [
   { id: "image", title: "Beeld", text: "AI maakt een beeld vanuit wat jij hebt ingebracht." },
   { id: "text", title: "Woorden", text: "Orden je eigen woorden, zonder nieuwe inhoud toe te voegen." },
@@ -124,6 +136,7 @@ export default function MaakEenRouwdier() {
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const ignoreRecordingResultRef = useRef(false);
   const audioChunks = useRef<Blob[]>([]);
   const audioFileRef = useRef<File | null>(null);
   const sonificationFileRef = useRef<File | null>(null);
@@ -134,13 +147,16 @@ export default function MaakEenRouwdier() {
   const liveAudioUnlocked = useRef(false);
   const soundDrawingEvents = useRef<Array<{ note: string; time: number; duration: number; attack: number; release: number; gain: number }>>([]);
   const soundDrawingStartedAt = useRef<number | null>(null);
+  const drawingHasMarksRef = useRef(false);
   const previousAiPath = useRef<AiPath>("none");
+  const previousDescriptionSuggestionRef = useRef("");
 
   const descriptionSuggestion = careReflection.trim();
   const visibleTitle = title.trim() || "een rouwdier";
   const visibleDescription = cardDescription.trim();
+  const validReferenceLink = normaliseReferenceLink(referenceLink);
   const hasAi = aiPath !== "none";
-  const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || reference.trim() || referenceLink.trim() || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
+  const hasShareableContent = Boolean(aiImageDataUrl || words.trim() || reference.trim() || validReferenceLink || photos.length || drawingDataUrl || audioUrl || sonificationUrl || title.trim() || cardDescription.trim());
   const hasImageForm = aiFormsSelected.includes("image");
   const hasMotionForm = aiFormsSelected.includes("motion");
   const hasTextInput = Boolean(words.trim() || careReflection.trim() || reference.trim());
@@ -149,7 +165,9 @@ export default function MaakEenRouwdier() {
   const canMakeAiImage = hasVisualInput || hasTextInput || hasSpokenInput;
   const needsTranscriptForAiImage = Boolean(audioUrl && !hasVisualInput && !hasTextInput);
   const hasOriginalVisual = Boolean(photos.length || drawingDataUrl);
-  const preservesDrawingExactly = aiPath === "together" && Boolean(drawingDataUrl);
+  const keepsOriginalVisuals = aiPath === "together" && hasOriginalVisual;
+  const showOriginalVisualsWithAi = keepsOriginalVisuals || sourceVisualChoice === "with-source";
+  const originalVisuals = [...photos.map((photo) => ({ src: photo.url, dataUrl: photo.dataUrl, alt: "Oorspronkelijke foto", kind: "photo" as const })), ...(drawingDataUrl ? [{ src: drawingDataUrl, dataUrl: drawingDataUrl, alt: "Oorspronkelijke tekening", kind: "drawing" as const }] : [])];
   const availableAiForms = (aiPath === "translate" ? aiForms.filter((form) => form.id === "image" && canMakeAiImage) : aiForms.filter((form) => (form.id === "image" && canMakeAiImage) || (form.id === "text" && hasTextInput) || (form.id === "motion" && hasVisualInput))).map((form) => form.id !== "image" ? form : aiPath === "translate" ? { ...form, title: hasVisualInput ? "Maak een nieuw beeld" : "Maak een beeld bij mijn woorden", text: hasVisualInput ? "AI werkt jouw bijdrage uit tot een nieuw beeld." : "AI maakt een beeld bij wat je hebt geschreven of verteld." } : hasVisualInput ? { ...form, title: "Voeg iets toe aan mijn beeld", text: "Je tekening of foto blijft aanwezig. AI kan er bijvoorbeeld een achtergrond aan toevoegen." } : { ...form, title: "Geef mijn woorden een beeld erbij", text: "Je eigen woorden blijven leesbaar. AI maakt er een beeld bij." });
   const aiImageHeading = aiPath === "translate" ? (hasVisualInput ? "Welk nieuw beeld mag AI maken?" : "Welk beeld mag AI bij jouw woorden maken?") : hasVisualInput ? "Wat mag AI aan jouw beeld toevoegen?" : "Welk beeld mag AI bij jouw woorden maken?";
   const aiImagePromptLabel = aiPath === "translate" ? "wat wil je dat AI verbeeldt?" : hasVisualInput ? "wat wil je veranderen of toevoegen?" : "wat wil je dat AI bij jouw woorden verbeeldt?";
@@ -174,10 +192,43 @@ export default function MaakEenRouwdier() {
     sonificationFileRef.current = null;
     setKeepSoundDrawing(false);
     setDrawingDataUrl("");
+    drawingHasMarksRef.current = false;
     setLiveSoundReady(false);
   };
   const toggleMode = (mode: InputMode) => {
+    const isRemoving = modes.includes(mode);
+    resetGeneratedAi();
+    setAiFormsSelected([]);
     if (mode === "sounddraw" || (mode === "draw" && modes.includes("sounddraw"))) resetSoundDrawing();
+    if (isRemoving) {
+      if (mode === "write") setWords("");
+      if (mode === "photo") {
+        photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+        setPhotos([]);
+      }
+      if (mode === "voice") {
+        ignoreRecordingResultRef.current = true;
+        if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        audioFileRef.current = null;
+        setAudioUrl("");
+        setAudioDataUrl("");
+        setAudioTranscript("");
+        setUseTranscript(false);
+        setIsRecording(false);
+      }
+      if (mode === "reference") {
+        setReference("");
+        setReferenceLink("");
+        setIncludeReferenceQr(false);
+      }
+      if (mode === "draw") {
+        const context = canvasRef.current?.getContext("2d");
+        if (canvasRef.current && context) context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        drawingHasMarksRef.current = false;
+        setDrawingDataUrl("");
+      }
+    }
     setModes((current) => {
       if (current.includes(mode)) return current.filter((item) => item !== mode);
       if (mode === "draw" || mode === "sounddraw") return [...current.filter((item) => item !== "draw" && item !== "sounddraw"), mode];
@@ -210,6 +261,19 @@ export default function MaakEenRouwdier() {
     setFeedback("");
     setGenerationError("");
   }, [aiPath]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (step !== 1 || !canvas || !drawingDataUrl || (!modes.includes("draw") && !modes.includes("sounddraw"))) return;
+    const image = new Image();
+    image.onload = () => {
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      drawingHasMarksRef.current = true;
+    };
+    image.src = drawingDataUrl;
+  }, [drawingDataUrl, modes, step]);
   const toggleSonificationInstrument = (instrument: SonificationInstrument) => setSonificationInstrumentsSelected((current) => {
     if (current.includes(instrument)) return current.length === 1 ? current : current.filter((item) => item !== instrument);
     return [...current, instrument].slice(-2);
@@ -319,15 +383,22 @@ export default function MaakEenRouwdier() {
       context.moveTo(lastPoint.current.x, lastPoint.current.y);
       context.lineTo(point.x, point.y);
       context.stroke();
+    } else {
+      context.fillStyle = drawingColour;
+      context.beginPath();
+      context.arc(point.x, point.y, Math.max(1, selectedThickness.width / 2), 0, Math.PI * 2);
+      context.fill();
     }
+    drawingHasMarksRef.current = true;
     lastPoint.current = point;
     playLiveDrawingSound(point);
   };
-  const beginDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (modes.includes("sounddraw") && soundDrawingStartedAt.current === null) soundDrawingStartedAt.current = performance.now(); drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); drawAt(event); };
+  const beginDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { resetGeneratedAi(); if (modes.includes("sounddraw") && soundDrawingStartedAt.current === null) soundDrawingStartedAt.current = performance.now(); drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); drawAt(event); };
   const continueDrawing = (event: ReactPointerEvent<HTMLCanvasElement>) => { if (drawing.current) drawAt(event); };
-  const endDrawing = () => { drawing.current = false; lastPoint.current = null; if (canvasRef.current && (!modes.includes("sounddraw") || keepSoundDrawing)) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
-  const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); soundDrawingEvents.current = []; soundDrawingStartedAt.current = null; setSoundDrawingEventCount(0); setDrawingDataUrl(""); setSonificationUrl(""); sonificationFileRef.current = null; };
+  const endDrawing = () => { drawing.current = false; lastPoint.current = null; if (canvasRef.current && drawingHasMarksRef.current && (!modes.includes("sounddraw") || keepSoundDrawing)) setDrawingDataUrl(canvasRef.current.toDataURL("image/png")); };
+  const clearDrawing = () => { const canvas = canvasRef.current; const context = canvas?.getContext("2d"); if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height); drawingHasMarksRef.current = false; soundDrawingEvents.current = []; soundDrawingStartedAt.current = null; setSoundDrawingEventCount(0); setDrawingDataUrl(""); if (sonificationUrl) URL.revokeObjectURL(sonificationUrl); setSonificationUrl(""); sonificationFileRef.current = null; };
   const addPhotos = async (files?: FileList | null) => {
+    resetGeneratedAi();
     const selectedFiles = Array.from(files ?? []).slice(0, Math.max(0, MAX_PHOTOS - photos.length));
     const prepared = await Promise.all(selectedFiles.map((file) => new Promise<{ name: string; url: string; dataUrl: string }>((resolve) => {
       const reader = new FileReader();
@@ -336,7 +407,7 @@ export default function MaakEenRouwdier() {
     })));
     if (prepared.length) setPhotos((current) => [...current, ...prepared].slice(0, MAX_PHOTOS));
   };
-  const removePhoto = (url: string) => setPhotos((current) => current.filter((photo) => photo.url !== url));
+  const removePhoto = (url: string) => { resetGeneratedAi(); URL.revokeObjectURL(url); setPhotos((current) => current.filter((photo) => photo.url !== url)); };
 
   const audioBufferToWav = (buffer: AudioBuffer) => {
     const bytes = buffer.length * buffer.numberOfChannels * 2;
@@ -444,6 +515,7 @@ export default function MaakEenRouwdier() {
 
   const startRecording = async () => {
     setMicrophoneError(false);
+    ignoreRecordingResultRef.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
@@ -451,7 +523,14 @@ export default function MaakEenRouwdier() {
       recorder.ondataavailable = (event) => audioChunks.current.push(event.data);
       recorder.onstop = () => {
         const recording = new Blob(audioChunks.current, { type: recorder.mimeType || "audio/webm" });
+        if (ignoreRecordingResultRef.current) {
+          ignoreRecordingResultRef.current = false;
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
         audioFileRef.current = new File([recording], `geluidsopname.${recording.type.includes("mp4") ? "mp4" : "webm"}`, { type: recording.type });
+        resetGeneratedAi();
         setAudioTranscript("");
         setAudioUrl(URL.createObjectURL(recording));
         const reader = new FileReader();
@@ -469,7 +548,11 @@ export default function MaakEenRouwdier() {
   const nextStepAfterImage = aiFormsSelected.includes("text") ? 22 : hasMotionForm ? 23 : 3;
   const nextStepAfterText = hasMotionForm ? 23 : 3;
   const previousAiStep = hasMotionForm ? 23 : aiFormsSelected.includes("text") ? 22 : hasImageForm ? 21 : 2;
-  const prepareCard = () => { if (!cardDescription.trim() && descriptionSuggestion) setCardDescription(descriptionSuggestion); setStep(4); };
+  const prepareCard = () => {
+    if (descriptionSuggestion && (!cardDescription.trim() || cardDescription.trim() === previousDescriptionSuggestionRef.current)) setCardDescription(descriptionSuggestion);
+    previousDescriptionSuggestionRef.current = descriptionSuggestion;
+    setStep(4);
+  };
   const dataUrlToFile = async (dataUrl: string, name: string) => {
     const response = await fetch(dataUrl);
     const blob = await response.blob();
@@ -498,7 +581,7 @@ export default function MaakEenRouwdier() {
       data.set("baseDirection", aiPrompt);
       data.set("revision", String(isRevision));
       data.set("aiPath", aiPath);
-      data.set("keepDrawingExact", String(preservesDrawingExactly));
+      data.set("sourceKind", photos[0] ? "photo" : drawingDataUrl ? "drawing" : "none");
       data.set("context", [words, reference, careReflection, transcriptContext].filter(Boolean).join("\n"));
       const source = isRevision && aiImageDataUrl ? aiImageDataUrl : photos[0]?.dataUrl || drawingDataUrl || "";
       if (source) data.set("source", await dataUrlToFile(source, photos[0]?.name || "tekening.png"));
@@ -533,7 +616,7 @@ export default function MaakEenRouwdier() {
     setIsGenerating(true);
     setGenerationError("");
     try {
-      const response = await fetch("/api/ai/text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "motion", direction, text: [words, careReflection, reference].filter(Boolean).join("\n\n") }) });
+      const response = await fetch("/api/ai/text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "motion", direction, text: [words, careReflection, reference].filter(Boolean).join("\n\n"), hasVisualInput }) });
       const result = await response.json().catch(() => ({})) as { motion?: string; error?: string };
       if (!response.ok || !result.motion) throw new Error(result.error || "De beweging kon niet worden gekozen.");
       setAiMotion(result.motion);
@@ -560,11 +643,10 @@ export default function MaakEenRouwdier() {
       data.set("sharing", sharing);
       if (aiMotion) data.set("motion", aiMotion);
       if (hasAiEndProduct) data.set("aiImage", await dataUrlToFile(aiImageDataUrl, "beeld-met-ai.png"));
-      if (hasAiEndProduct && preservesDrawingExactly) data.set("exactDrawing", "true");
       data.set("text", words);
       data.set("reference", reference);
-      data.set("referenceLink", referenceLink);
-      if (!hasAiEndProduct || sourceVisualChoice === "with-source" || preservesDrawingExactly) {
+      data.set("referenceLink", validReferenceLink);
+      if (!hasAiEndProduct || showOriginalVisualsWithAi) {
         for (const [index, photo] of photos.entries()) data.append("photos", await dataUrlToFile(photo.dataUrl, photo.name || `foto-${index + 1}.jpg`));
         if (drawingDataUrl) data.set("drawing", await dataUrlToFile(drawingDataUrl, "tekening.png"));
       }
@@ -601,40 +683,25 @@ export default function MaakEenRouwdier() {
     const inset = 16;
     const padding = 38;
     const contentWidth = width - inset * 2 - padding * 2;
-      const photoGrid = !aiImageDataUrl && !drawingDataUrl && photos.length > 1;
-      const mediaSource = aiImageDataUrl || photos[0]?.dataUrl || drawingDataUrl;
-    const media = mediaSource ? await new Promise<HTMLImageElement | null>((resolve) => {
+    const visualSources = [
+      ...(aiImageDataUrl ? [{ dataUrl: aiImageDataUrl, kind: "ai" as const }] : []),
+      ...(!aiImageDataUrl || showOriginalVisualsWithAi ? photos.map((photo) => ({ dataUrl: photo.dataUrl, kind: "photo" as const })) : []),
+      ...(!aiImageDataUrl || showOriginalVisualsWithAi ? (drawingDataUrl ? [{ dataUrl: drawingDataUrl, kind: "drawing" as const }] : []) : []),
+    ];
+    const visualImages = (await Promise.all(visualSources.map((source) => new Promise<{ image: HTMLImageElement; kind: "ai" | "photo" | "drawing" } | null>((resolve) => {
       const image = new Image();
-      image.onload = () => resolve(image);
+      image.onload = () => resolve({ image, kind: source.kind });
       image.onerror = () => resolve(null);
-      image.src = mediaSource;
-    }) : null;
-    const sourceVisualSource = !preservesDrawingExactly && sourceVisualChoice === "with-source" ? photos[0]?.dataUrl || drawingDataUrl : "";
-    const sourceVisual = sourceVisualSource ? await new Promise<HTMLImageElement | null>((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
-      image.src = sourceVisualSource;
-    }) : null;
-    const exactDrawing = preservesDrawingExactly && drawingDataUrl ? await new Promise<HTMLImageElement | null>((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
-      image.src = drawingDataUrl;
-    }) : null;
-    const extraPhotos = photoGrid ? await Promise.all(photos.slice(1).map((photo) => new Promise<HTMLImageElement | null>((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
-      image.src = photo.dataUrl;
-    }))) : [];
-    const photoGridImages = [media, ...extraPhotos].filter((image): image is HTMLImageElement => Boolean(image));
-    const gridColumns = photoGridImages.length > 1 ? 2 : 1;
-    const gridRows = photoGridImages.length ? Math.ceil(photoGridImages.length / gridColumns) : 0;
+      image.src = source.dataUrl;
+    })))).filter((item): item is { image: HTMLImageElement; kind: "ai" | "photo" | "drawing" } => Boolean(item));
+    const media = visualImages[0]?.image || null;
+    const mediaGrid = visualImages.length > 1;
+    const gridColumns = mediaGrid ? 2 : 1;
+    const gridRows = visualImages.length ? Math.ceil(visualImages.length / gridColumns) : 0;
     const gridGap = 8;
     const gridCellWidth = gridColumns > 1 ? (contentWidth - gridGap) / gridColumns : contentWidth;
-    const gridCellHeight = gridColumns > 1 ? gridCellWidth : media ? Math.round(contentWidth * (media.height / media.width)) : 0;
-    const mediaHeight = photoGrid ? gridRows * gridCellHeight + Math.max(0, gridRows - 1) * gridGap : media ? Math.round(contentWidth * (media.height / media.width)) : savedAudioUrl ? 140 : 0;
+    const gridCellHeight = mediaGrid ? gridCellWidth : media ? Math.round(contentWidth * (media.height / media.width)) : 0;
+    const mediaHeight = mediaGrid ? gridRows * gridCellHeight + Math.max(0, gridRows - 1) * gridGap : media ? gridCellHeight : savedAudioUrl ? 140 : 0;
     canvas.width = width;
     canvas.height = 100;
     let context = canvas.getContext("2d");
@@ -642,14 +709,15 @@ export default function MaakEenRouwdier() {
     context.font = "400 26px Arial, sans-serif";
     const titleLines = wrapCanvasText(context, visibleTitle, contentWidth).slice(0, 3);
     context.font = "17px Arial, sans-serif";
-    const bodyText = [words.trim(), visibleDescription].filter((value, index, values) => value && values.indexOf(value) === index).join("\n\n");
-    const bodyLines = bodyText ? wrapCanvasText(context, bodyText, contentWidth).slice(0, 7) : [];
+    const audioLabel = media && savedAudioUrl ? (sonificationUrl ? "klank van de tekening toegevoegd" : "geluidsopname toegevoegd") : "";
+    const bodyText = [words.trim(), visibleDescription, audioLabel, reference.trim()].filter((value, index, values) => value && values.indexOf(value) === index).join("\n\n");
+    const bodyLines = bodyText ? wrapCanvasText(context, bodyText, contentWidth).slice(0, 10) : [];
     const top = inset + padding;
     const titleTop = top + 47;
     const mediaTop = titleTop + titleLines.length * 34 + 24;
     const bodyTop = mediaTop + mediaHeight + (mediaHeight ? 25 : 0);
     const footerTop = bodyTop + bodyLines.length * 26 + (bodyLines.length ? 28 : 10);
-    const footerHeight = includeReferenceQr && referenceLink ? 178 : 118;
+    const footerHeight = includeReferenceQr && validReferenceLink ? 178 : 118;
     const height = Math.max(500, footerTop + footerHeight + inset + padding);
     canvas.height = height;
     context = canvas.getContext("2d");
@@ -679,28 +747,22 @@ export default function MaakEenRouwdier() {
       const height = image.height * scale;
       context?.drawImage(image, left + (targetWidth - width) / 2, top + (targetHeight - height) / 2, width, height);
     };
-    if (photoGrid) {
-      photoGridImages.forEach((image, index) => {
+    if (mediaGrid) {
+      visualImages.forEach((item, index) => {
         const column = index % gridColumns;
         const row = Math.floor(index / gridColumns);
         context?.save();
         context?.beginPath();
         context?.rect(inset + padding + column * (gridCellWidth + gridGap), mediaTop + row * (gridCellHeight + gridGap), gridCellWidth, gridCellHeight);
         context?.clip();
-        drawCover(image, inset + padding + column * (gridCellWidth + gridGap), mediaTop + row * (gridCellHeight + gridGap), gridCellWidth, gridCellHeight);
+        const draw = item.kind === "drawing" ? drawContain : drawCover;
+        draw(item.image, inset + padding + column * (gridCellWidth + gridGap), mediaTop + row * (gridCellHeight + gridGap), gridCellWidth, gridCellHeight);
         context?.restore();
       });
-    } else if (media) context.drawImage(media, inset + padding, mediaTop, contentWidth, mediaHeight);
-    if (media && exactDrawing) drawContain(exactDrawing, inset + padding, mediaTop, contentWidth, mediaHeight);
-    if (media && sourceVisual) {
-      const sourceSize = Math.min(132, Math.max(84, Math.round(contentWidth * .23)));
-      const sourceLeft = inset + padding + contentWidth - sourceSize - 12;
-      const sourceTop = mediaTop + mediaHeight - sourceSize - 12;
-      context.fillStyle = "#fffdf8";
-      context.fillRect(sourceLeft - 5, sourceTop - 5, sourceSize + 10, sourceSize + 10);
-      context.strokeStyle = "#d8d1c5";
-      context.strokeRect(sourceLeft - 4.5, sourceTop - 4.5, sourceSize + 9, sourceSize + 9);
-      context.drawImage(sourceVisual, sourceLeft, sourceTop, sourceSize, sourceSize);
+    } else if (media) {
+      const onlyVisual = visualImages[0];
+      if (onlyVisual?.kind === "drawing") drawContain(media, inset + padding, mediaTop, contentWidth, mediaHeight);
+      else context.drawImage(media, inset + padding, mediaTop, contentWidth, mediaHeight);
     }
     if (!media && savedAudioUrl) {
       context.fillStyle = "#ebe6dc";
@@ -719,7 +781,7 @@ export default function MaakEenRouwdier() {
     context.stroke();
     context.fillStyle = "#6b655b";
     context.font = "14px Arial, sans-serif";
-    const hasReferenceQr = includeReferenceQr && Boolean(referenceLink);
+    const hasReferenceQr = includeReferenceQr && Boolean(validReferenceLink);
     const sourceFooterTop = footerTop + 26;
     if (hasReferenceQr) {
       context.fillText("Open de verwijzing", inset + padding, sourceFooterTop);
@@ -737,7 +799,7 @@ export default function MaakEenRouwdier() {
     if (qrImage) context.drawImage(qrImage, width - inset - padding - 84, projectFooterTop - 13, 84, 84);
     if (hasReferenceQr) {
       const referenceQr = await new Promise<HTMLImageElement | null>((resolve) => {
-        QRCode.toDataURL(referenceLink, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
+        QRCode.toDataURL(validReferenceLink, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
           const image = new Image(); image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = source;
         }).catch(() => resolve(null));
       });
@@ -765,8 +827,8 @@ export default function MaakEenRouwdier() {
       <p className="surface-label">{label}</p>
       {mode === "sounddraw" && <audio ref={activationAudioRef} className="activation-audio" src="/klank-aan.wav" preload="auto" />}
       {mode === "sounddraw" && isPreparingLiveSound && <p className="sound-preparing">klank wordt klaargezet…</p>}
-      {mode === "write" && <textarea value={words} onChange={(event) => setWords(event.target.value)} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
-      {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
+      {mode === "write" && <textarea value={words} onChange={(event) => { resetGeneratedAi(); setWords(event.target.value); }} placeholder="Begin waar je wilt…" aria-label="Schrijf iets over je rouwdier" />}
+      {mode === "reference" && <div className="reference-area"><label>wat wil je aanwijzen?<textarea value={reference} onChange={(event) => { resetGeneratedAi(); setReference(event.target.value); }} placeholder="Een titel, zin, plek, liedje of gezegde…" aria-label="Wat wil je aanwijzen" /></label><label>link <span>optioneel</span><input type="url" value={referenceLink} onChange={(event) => { resetGeneratedAi(); setReferenceLink(event.target.value); if (!event.target.value) setIncludeReferenceQr(false); }} onBlur={() => { if (validReferenceLink) setReferenceLink(validReferenceLink); }} placeholder="Waar is het te vinden?" aria-label="Link naar de verwijzing" /></label>{referenceLink && !validReferenceLink && <small className="save-error" role="alert">Vul een volledige website in, bijvoorbeeld spotify.com of https://voorbeeld.nl.</small>}{validReferenceLink && <label className="live-sound-choice"><input type="checkbox" checked={includeReferenceQr} onChange={(event) => setIncludeReferenceQr(event.target.checked)} />Zet een QR-code naar deze verwijzing op mijn kaartje.</label>}<p>De verwijzing blijft van jou. De AI zoekt niets automatisch op.</p></div>}
       {mode === "photo" && <div className="upload-area">{photos.length ? <div className="photo-previews">{photos.map((photo, index) => <figure key={photo.url} className="photo-preview-card"><img src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} className="photo-preview" /><button type="button" onClick={() => removePhoto(photo.url)} aria-label={`Verwijder ${photo.name}`}>×</button></figure>)}</div> : <span className="upload-spark" aria-hidden="true" />}<div className="photo-actions"><label className="secondary-button">maak een foto<input type="file" accept="image/*" capture="environment" disabled={photos.length >= MAX_PHOTOS} onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label><label className="secondary-button">kies uit je foto’s<input type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS} onChange={(event) => { addPhotos(event.target.files); event.currentTarget.value = ""; }} /></label></div><small>{photos.length ? `${photos.length} van maximaal ${MAX_PHOTOS} foto’s toegevoegd` : `Je kunt maximaal ${MAX_PHOTOS} foto’s toevoegen.`}</small></div>}
       {(mode === "draw" || mode === "sounddraw") && <>{mode === "sounddraw" && <div className="sound-controls"><p className="lead">Teken terwijl de klank ontstaat. Wat je straks bewaart, klinkt zoals je het hier hebt gemaakt.</p><div className="sound-activation">{liveSoundReady ? <p>Klank staat aan.</p> : <><button type="button" className="secondary-button" onClick={activateLiveSound}>zet klank aan</button><p>Tik hier eerst op. Daarna hoor je de klank tijdens het tekenen.</p></>}</div><div className="drawing-sound-area"><p>Welke klank wil je tekenen?</p><div className="drawing-sound-options">{sonificationStyles.map((style) => <button type="button" key={style.id} className={sonificationStyle === style.id ? "is-selected" : ""} onClick={() => setSonificationStyle(style.id)}><strong>{style.title}</strong><span>{style.text}</span></button>)}</div><p>Welke instrumentklanken wil je horen? <span>maximaal twee</span></p><div className="drawing-sound-options">{sonificationInstruments.map((instrument) => <button type="button" key={instrument.id} className={sonificationInstrumentsSelected.includes(instrument.id) ? "is-selected" : ""} onClick={() => toggleSonificationInstrument(instrument.id)}><strong>{instrument.title}</strong><span>{instrument.text}</span></button>)}</div></div></div>}<div className="drawing-tools"><div className="drawing-colours" aria-label="Kies een kleur">{drawingColours.map((colour) => <button type="button" key={colour} className={drawingColour === colour ? "is-selected" : ""} style={{ "--drawing-colour": colour } as React.CSSProperties} aria-label={`Kies kleur ${colour}`} onClick={() => setDrawingColour(colour)} />)}</div><div className="drawing-thicknesses" aria-label="Kies lijndikte">{drawingThicknesses.map((thickness) => <button type="button" key={thickness.id} className={drawingThickness === thickness.id ? "is-selected" : ""} onClick={() => setDrawingThickness(thickness.id)}><strong style={{ "--stroke-width": `${thickness.width}px` } as React.CSSProperties} aria-hidden="true" />{thickness.title}</button>)}</div></div><div className="drawing-area">
         <canvas ref={canvasRef} width="720" height="720" aria-label="Tekenruimte" onPointerDown={beginDrawing} onPointerMove={continueDrawing} onPointerUp={endDrawing} onPointerLeave={endDrawing} />
@@ -778,7 +840,8 @@ export default function MaakEenRouwdier() {
     </div>;
   };
 
-  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" />{preservesDrawingExactly && drawingDataUrl && <img className="card-exact-drawing" src={drawingDataUrl} alt="Jouw oorspronkelijke tekening" />}{!preservesDrawingExactly && sourceVisualChoice === "with-source" && <div className="card-source-visual">{photos[0] ? <img src={photos[0].url} alt="Oorspronkelijke afbeelding" /> : drawingDataUrl ? <img src={drawingDataUrl} alt="Oorspronkelijke tekening" /> : null}</div>}</div> : <>{photos.length === 1 && <img className="card-image" src={photos[0].url} alt="Jouw gekozen afbeelding" />}{photos.length > 1 && <div className="card-photo-grid">{photos.map((photo, index) => <img key={photo.url} src={photo.url} alt={`Gekozen afbeelding ${index + 1}`} />)}</div>}{!photos[0] && drawingDataUrl && <img className="card-image card-drawing" src={drawingDataUrl} alt="Jouw tekening" />}{!photos[0] && !drawingDataUrl && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{!photos[0] && !drawingDataUrl && !savedAudioUrl && words && <p className="card-words">{words}</p>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{referenceLink && <p className="card-reference">verwijzing toegevoegd</p>}</>}{words.trim() && Boolean(aiImageDataUrl || photos.length || drawingDataUrl || savedAudioUrl) && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
+  const OriginalVisualPreview = ({ labelled = false }: { labelled?: boolean }) => originalVisuals.length ? <div className="card-original-visuals">{labelled && <small>jouw oorspronkelijke bijdrage</small>}<div className={originalVisuals.length > 1 ? "card-photo-grid" : ""}>{originalVisuals.map((visual, index) => <img key={`${visual.src}-${index}`} className={originalVisuals.length === 1 ? `card-image${visual.kind === "drawing" ? " card-drawing" : ""}` : ""} src={visual.src} alt={visual.alt} />)}</div></div> : null;
+  const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></div>{showOriginalVisualsWithAi && <OriginalVisualPreview labelled />}</> : <OriginalVisualPreview />}{!aiImageDataUrl && !originalVisuals.length && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{words.trim() && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}{reference.trim() && <p className="card-reference">{reference}</p>}{validReferenceLink && <p className="card-reference">link naar de verwijzing toegevoegd</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code op het gedownloade kaartje.</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
     {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Waar kan jouw rouwdier uit bestaan?</h1><p className="lead">Je kunt iets vastleggen, iets vormgeven, of verschillende vormen combineren.</p><div className="input-groups">{inputGroups.map((group) => <section className="input-group" key={group.id} aria-labelledby={`input-group-${group.id}`}><h2 id={`input-group-${group.id}`}>{group.title}</h2><div className="input-options">{group.inputIds.map((inputId) => { const input = inputs.find((item) => item.id === inputId)!; const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div></section>)}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
@@ -787,14 +850,14 @@ export default function MaakEenRouwdier() {
 
     {step === 2 && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>Wat wil je nu met je rouwdier doen?</h1><p className="lead">Je kunt zelf verdergaan, iets samen met AI maken, of AI vragen jouw input naar een andere vorm te vertalen.</p><div className="choice-list"><button type="button" className={aiPath === "none" ? "is-selected" : ""} onClick={() => { setAiPath("none"); setAiFormsSelected([]); }}><strong>Ik wil zelf verder</strong><span>Je rouwdier blijft zoals het nu is. Je kunt er zelf nog iets aan toevoegen.</span></button><button type="button" className={aiPath === "together" ? "is-selected" : ""} onClick={() => { setAiPath("together"); setAiFormsSelected([]); }}><strong>Ik wil samen met AI verder werken</strong><span>AI werkt met wat je hebt ingebracht. Jij bepaalt wat er gebeurt.</span></button><button type="button" className={aiPath === "translate" ? "is-selected" : ""} onClick={() => { setAiPath("translate"); setAiFormsSelected([]); }}><strong>Ik wil AI mijn input laten vertalen</strong><span>AI maakt een nieuw beeld vanuit wat jij hebt ingebracht.</span></button></div>{hasAi && <div className="ai-form-area"><p className="feedback-question">{aiPath === "together" ? "Wat mag AI nu doen?" : "AI maakt een nieuw beeld."}</p><p className="option-explainer">{aiPath === "together" ? "Je kunt één of meer bewerkingen kiezen. Je eigen bijdrage blijft zichtbaar of leesbaar." : "AI werkt met jouw bijdrage als vertrekpunt en maakt een nieuwe beeldversie."}</p><div className="choice-list">{availableAiForms.map((form) => <button type="button" key={form.id} className={aiFormsSelected.includes(form.id) ? "is-selected" : ""} onClick={() => toggleAiForm(form.id)}><strong>{form.title}</strong><span>{form.text}</span></button>)}</div></div>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(1)}>terug</button><button type="button" className="primary-button" disabled={hasAi && !aiFormsSelected.length} onClick={() => hasAi ? setStep(hasImageForm ? 21 : aiFormsSelected.includes("text") ? 22 : hasMotionForm ? 23 : 3) : setStep(3)}>verder</button></div></div>}
 
-    {step === 21 && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiImageDataUrl ? "Kijk even naar de AI-versie." : aiImageHeading}</h1><p className="lead">Straks beslis je wat ermee gebeurt. Je hoeft niets te delen als je dat niet wilt.</p>{hasImageForm && <><label className="title-field">{aiImagePromptLabel} <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: laat zien wat hier voor jou in meeleeft" aria-label="Wat mag AI verbeelden" /></label>{audioUrl && <label className="consent-field transcript-choice"><input type="checkbox" checked={useTranscript} onChange={(event) => setUseTranscript(event.target.checked)} /><span>Gebruik de woorden uit mijn opname ook voor dit beeld.</span><small>De opname wordt hiervoor eenmalig omgezet naar tekst. Die tekst komt niet op je kaartje en wordt niet bewaard.</small></label>}<label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat wat ik voor deze AI-versie kies tijdelijk naar OpenAI gaat.</span><small>OpenAI maakt hiermee een beeldvoorstel. Op het kaartje kies je later of een oorspronkelijke foto of tekening ook zichtbaar blijft.</small></label>{!aiImageDataUrl && <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent || (needsTranscriptForAiImage && !useTranscript)} onClick={() => void createAiImage()}>{isGenerating ? "beeld wordt gemaakt…" : "maak een beeldvoorstel"}</button></div>}{generationError && <p className="save-error" role="alert">{generationError}</p>}{aiImageDataUrl && <><div className="ai-result"><div className="card-ai-image"><img src={aiImageDataUrl} alt="Beeldvoorstel van AI" />{preservesDrawingExactly && drawingDataUrl && <img className="card-exact-drawing" src={drawingDataUrl} alt="Jouw oorspronkelijke tekening" />}</div></div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "again" ? "is-selected" : ""} onClick={() => setFeedbackDirection("again")}>Ik wil opnieuw kijken</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{(feedbackDirection === "adjust" || feedbackDirection === "again") && <div className="feedback-followup"><p>Vertel wat je anders wilt zien.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiImage(feedback, true)}>{isGenerating ? "beeld wordt gemaakt…" : "maak een nieuwe versie"}</button></div>}{feedbackDirection === "without" && <p className="feedback-followup">Je eigen bijdrage blijft over, zonder de AI-versie.</p>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust" || feedbackDirection === "again"} onClick={() => { if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setAiImageDataUrl(""); setStep(3); return; } setStep(nextStepAfterImage); }}>verder</button></div></>}</>}</div>}
+    {step === 21 && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiImageDataUrl ? "Kijk even naar de AI-versie." : aiImageHeading}</h1><p className="lead">Straks beslis je wat ermee gebeurt. Je hoeft niets te delen als je dat niet wilt.</p>{photos.length > 1 && <p className="skip-note">AI gebruikt de eerste foto als uitgangspunt. Je andere foto’s blijven bewaard als je samen met AI verder werkt, of als je straks kiest ze bij de nieuwe versie te tonen.</p>}{hasImageForm && <><label className="title-field">{aiImagePromptLabel} <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: laat zien wat hier voor jou in meeleeft" aria-label="Wat mag AI verbeelden" /></label>{audioUrl && <label className="consent-field transcript-choice"><input type="checkbox" checked={useTranscript} onChange={(event) => setUseTranscript(event.target.checked)} /><span>Gebruik de woorden uit mijn opname ook voor dit beeld.</span><small>De opname wordt hiervoor eenmalig omgezet naar tekst. Die tekst komt niet op je kaartje en wordt niet bewaard.</small></label>}<label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat wat ik voor deze AI-versie kies tijdelijk naar OpenAI gaat.</span><small>{aiPath === "together" ? "OpenAI maakt een aanvullend beeldvoorstel. Je oorspronkelijke foto of tekening blijft daarnaast letterlijk bewaard en zichtbaar." : "OpenAI gebruikt je eerste foto of tekening als bron voor een nieuwe versie. Je kiest op het kaartje of het oorspronkelijke beeld ook zichtbaar blijft."}</small></label>{!aiImageDataUrl && <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent || (needsTranscriptForAiImage && !useTranscript)} onClick={() => void createAiImage()}>{isGenerating ? "beeld wordt gemaakt…" : "maak een beeldvoorstel"}</button></div>}{generationError && <p className="save-error" role="alert">{generationError}</p>}{aiImageDataUrl && <><div className="ai-result"><div className="card-ai-image"><img src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></div>{keepsOriginalVisuals && <OriginalVisualPreview labelled />}</div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "again" ? "is-selected" : ""} onClick={() => setFeedbackDirection("again")}>Ik wil opnieuw kijken</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{(feedbackDirection === "adjust" || feedbackDirection === "again") && <div className="feedback-followup"><p>Vertel wat je anders wilt zien.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiImage(feedback, true)}>{isGenerating ? "beeld wordt gemaakt…" : "maak een nieuwe versie"}</button></div>}{feedbackDirection === "without" && <p className="feedback-followup">Je eigen bijdrage blijft over, zonder de AI-versie.</p>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust" || feedbackDirection === "again"} onClick={() => { if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setAiImageDataUrl(""); setStep(3); return; } setStep(nextStepAfterImage); }}>verder</button></div></>}</>}</div>}
 
-    {step === 4 && <div><p className="eyebrow">4 van 5 · je rouwdier als kaartje</p><h1>Je rouwdier als kaartje</h1><p className="lead">We hebben alvast gebruikt wat je zelf hebt toegevoegd. Je kunt dit aanpassen, leegmaken of vervangen.</p><div className="card-editor"><CardPreview /><div className="card-fields"><label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label><label className="title-field">wat wil je erbij zeggen? <span>optioneel</span><textarea value={cardDescription} onChange={(event) => setCardDescription(event.target.value)} placeholder="Schrijf wat je wilt meegeven." aria-label="Toelichting bij je rouwdier" /></label></div></div>{aiImageDataUrl && preservesDrawingExactly && <p className="exact-drawing-note">Je tekening blijft precies zoals je hem hebt gemaakt.</p>}{aiImageDataUrl && hasOriginalVisual && !preservesDrawingExactly && <fieldset className="source-visual-choice"><legend>Wil je laten zien waar dit rouwdier begon?</legend><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "final"} onChange={() => setSourceVisualChoice("final")} />Alleen deze versie bewaren</label><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "with-source"} onChange={() => setSourceVisualChoice("with-source")} />Laat ook mijn foto of tekening zien</label></fieldset>}<div className="completion-actions"><button type="button" className="secondary-button" onClick={downloadCard}>bewaar als afbeelding</button>{savedAudioUrl && <a className="secondary-button" href={savedAudioUrl} download={sonificationUrl ? "klank-van-de-tekening.wav" : "geluidsopname.webm"}>bewaar {sonificationUrl ? "klank" : "geluidsopname"}</a>}</div><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(3)}>terug</button><button type="button" className="primary-button" disabled={Boolean(aiImageDataUrl && hasOriginalVisual && !preservesDrawingExactly && !sourceVisualChoice)} onClick={() => setStep(5)}>kies waar het mag leven</button></div></div>}
+    {step === 4 && <div><p className="eyebrow">4 van 5 · je rouwdier als kaartje</p><h1>Je rouwdier als kaartje</h1><p className="lead">We hebben alvast gebruikt wat je zelf hebt toegevoegd. Je kunt dit aanpassen, leegmaken of vervangen.</p><div className="card-editor"><CardPreview /><div className="card-fields"><label className="title-field">naam of klein woord <span>optioneel</span><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="bijvoorbeeld: De stekjes van oma" /></label><label className="title-field">wat wil je erbij zeggen? <span>optioneel</span><textarea value={cardDescription} onChange={(event) => setCardDescription(event.target.value)} placeholder="Schrijf wat je wilt meegeven." aria-label="Toelichting bij je rouwdier" /></label></div></div>{aiImageDataUrl && keepsOriginalVisuals && <p className="exact-drawing-note">Je oorspronkelijke bijdrage blijft letterlijk bewaard naast wat AI heeft toegevoegd.</p>}{aiImageDataUrl && aiPath === "translate" && hasOriginalVisual && <fieldset className="source-visual-choice"><legend>Wil je laten zien waar dit rouwdier begon?</legend><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "final"} onChange={() => setSourceVisualChoice("final")} />Alleen deze nieuwe versie bewaren</label><label><input type="radio" name="source-visual" checked={sourceVisualChoice === "with-source"} onChange={() => setSourceVisualChoice("with-source")} />Laat ook mijn oorspronkelijke foto of tekening zien</label></fieldset>}<div className="completion-actions"><button type="button" className="secondary-button" onClick={downloadCard}>bewaar als afbeelding</button>{savedAudioUrl && <a className="secondary-button" href={savedAudioUrl} download={sonificationUrl ? "klank-van-de-tekening.wav" : "geluidsopname.webm"}>bewaar {sonificationUrl ? "klank" : "geluidsopname"}</a>}</div><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(3)}>terug</button><button type="button" className="primary-button" disabled={Boolean(aiImageDataUrl && aiPath === "translate" && hasOriginalVisual && !sourceVisualChoice)} onClick={() => setStep(5)}>kies waar het mag leven</button></div></div>}
 
     {step === 5 && <div><p className="eyebrow">5 van 5 · waar mag het leven?</p><h1>Waar mag deze bijdrage leven?</h1><p className="lead">Je bijdrage blijft anoniem.</p><div className="choice-list sharing-list"><button type="button" className={sharing === "take" ? "is-selected" : ""} onClick={() => { setSharing("take"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Ik neem het weer mee</strong><span>Er verschijnt niets in het landschap.</span></button><button type="button" className={sharing === "online" ? "is-selected" : ""} onClick={() => { setSharing("online"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag in het online landschap leven</strong><span>Bezoekers kunnen jouw bijdrage daar openen.</span></button><button type="button" className={sharing === "here" ? "is-selected" : ""} onClick={() => { setSharing("here"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag bij deze opstelling leven</strong><span>Naast het online landschap kan het hier bij deze opstelling worden getoond. Niet alle rouwdieren krijgen hier een plek.</span></button><button type="button" className={sharing === "future" ? "is-selected" : ""} onClick={() => { setSharing("future"); setIsPubliclyConfirmed(false); setShowConsentDetails(false); setSaveError(""); }}><strong>Het mag ook op andere plekken leven</strong><span>Ook niet alle rouwdieren worden elders getoond. Welke andere plekken dat zijn, is vooraf niet bekend.</span></button></div>{sharing !== "take" && <div className="consent-area"><label className="consent-field"><input type="checkbox" checked={isPubliclyConfirmed} onChange={(event) => setIsPubliclyConfirmed(event.target.checked)} /><span>Ik begrijp wat deze keuze inhoudt.</span></label><button type="button" className="consent-details-button" onClick={() => setShowConsentDetails(true)}>Lees de toelichting</button></div>}<p className="test-note">{hasShareableContent ? "Als je kiest voor het online landschap, verschijnt je rouwdier daar meteen en kunnen anderen het openen." : "Je kunt je rouwdier meenemen, of eerst nog iets toevoegen voordat het in het landschap kan leven."}</p>{saveError && <p className="save-error" role="alert">{saveError}</p>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(4)}>terug</button><button type="button" className="primary-button" disabled={isSaving || (sharing !== "take" && (!isPubliclyConfirmed || !hasShareableContent))} onClick={() => void finishContribution()}>{isSaving ? "even toevoegen…" : "rond af"}</button></div>{showConsentDetails && <div className="consent-modal" role="dialog" aria-modal="true" aria-labelledby="consent-title"><section><button type="button" aria-label="Sluit toelichting" onClick={() => setShowConsentDetails(false)}>×</button><p>{consentDetails.title}</p><h2 id="consent-title">Wat houdt deze keuze in?</h2><div>{consentDetails.text}</div></section></div>}</div>}
 
     {step === 6 && <div className="make-intro completion"><p className="eyebrow">klaar</p><h1>{sharing === "take" ? "Je rouwdier blijft bij jou." : "Je rouwdier heeft nu een plek gekregen."}</h1><p className="lead">{sharing === "take" ? "Er is niets aan het landschap of een opstelling toegevoegd. Wil je wel die van anderen bekijken?" : "Je hebt aangegeven waar deze bijdrage eventueel mag leven."}</p><a className="primary-button" href={savedContributionId ? `/verken?landschap=${landscape.id}&nieuw=${encodeURIComponent(savedContributionId)}` : `/verken?landschap=${landscape.id}`}>{sharing === "take" ? `bekijk de rouwdieren van anderen in het ${landscape.name}` : `bekijk jouw rouwdier en dat van anderen in het ${landscape.name}`}</a></div>}
-    {step === 22 && aiFormsSelected.includes("text") && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiTextResult ? "Kijk even naar de tekstversie." : "Wat mag AI met je woorden doen?"}</h1><p className="lead">AI ordent alleen wat jij zelf hebt geschreven. Je kunt de tekst gebruiken, aanpassen of niet gebruiken.</p><label className="title-field">wat mag helderder of anders geordend? <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: houd mijn woorden, maar maak de volgorde rustiger" aria-label="Wat mag AI met je woorden doen" /></label><label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat mijn woorden tijdelijk naar OpenAI gaan.</span><small>OpenAI ordent ze zonder nieuwe inhoud toe te voegen. Alleen wat ik zelf kies komt op mijn kaartje.</small></label>{!aiTextResult ? <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent} onClick={() => void createAiText()}>{isGenerating ? "tekst wordt geordend…" : "orden mijn woorden"}</button></div> : <><div className="ai-result ai-text-result">{aiTextResult}</div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{feedbackDirection === "adjust" && <div className="feedback-followup"><p>Vertel wat je anders wilt.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiText(feedback)}>{isGenerating ? "tekst wordt geordend…" : "maak een nieuwe versie"}</button></div>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust"} onClick={() => { if (feedbackDirection === "keep") setWords(aiTextResult); if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setStep(3); return; } setStep(nextStepAfterText); }}>verder</button></div></>}{generationError && <p className="save-error" role="alert">{generationError}</p>}</div>}
+    {step === 22 && aiFormsSelected.includes("text") && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiTextResult ? "Kijk even naar de tekstversie." : "Wat mag AI met je woorden doen?"}</h1><p className="lead">AI ordent alleen wat jij zelf hebt geschreven. Je kunt de tekst gebruiken, aanpassen of niet gebruiken.</p><label className="title-field">wat mag helderder of anders geordend? <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: houd mijn woorden, maar maak de volgorde rustiger" aria-label="Wat mag AI met je woorden doen" /></label><label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat wat ik voor deze beweging kies tijdelijk naar OpenAI gaat.</span><small>OpenAI ordent ze zonder nieuwe inhoud toe te voegen. Alleen wat ik zelf kies komt op mijn kaartje.</small></label>{!aiTextResult ? <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent} onClick={() => void createAiText()}>{isGenerating ? "tekst wordt geordend…" : "orden mijn woorden"}</button></div> : <><div className="ai-result ai-text-result">{aiTextResult}</div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{feedbackDirection === "adjust" && <div className="feedback-followup"><p>Vertel wat je anders wilt.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiText(feedback)}>{isGenerating ? "tekst wordt geordend…" : "maak een nieuwe versie"}</button></div>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust"} onClick={() => { if (feedbackDirection === "keep") setWords(aiTextResult); if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setStep(3); return; } setStep(nextStepAfterText); }}>verder</button></div></>}{generationError && <p className="save-error" role="alert">{generationError}</p>}</div>}
     {step === 23 && hasMotionForm && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiMotion ? "Kijk even naar de beweging." : "Hoe mag je rouwdier bewegen?"}</h1><p className="lead">De beweging verschijnt alleen wanneer iemand jouw rouwdier opent. Het landschap zelf blijft rustig.</p><label className="title-field">wat wil je dat de beweging doet? <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: heel rustig, alsof het even blijft hangen" aria-label="Wat wil je dat de beweging doet" /></label><label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik begrijp dat mijn woorden tijdelijk naar OpenAI gaan.</span><small>OpenAI kiest alleen een rustige bewegingsrichting voor dit rouwdier.</small></label>{!aiMotion ? <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent} onClick={() => void createAiMotion()}>{isGenerating ? "beweging wordt gekozen…" : "kies een beweging"}</button></div> : <><div className={`motion-preview motion-${aiMotion}`}>{motionPreviewImage ? <img className="motion-preview-subject" src={motionPreviewImage} alt="Voorvertoning van jouw bijdrage met beweging" /> : <p className="motion-preview-subject motion-preview-words">{motionPreviewWords}</p>}<p>{aiMotion === "heartbeat" ? "een lichte hartslag" : aiMotion === "drift" ? "een zachte beweging die langzaam wegdrijft" : aiMotion === "sway" ? "een rustige beweging van links naar rechts" : "een beweging die langzaam ademt"}</p></div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder beweging verder</button></div><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection} onClick={() => { if (feedbackDirection === "without") setAiMotion(""); setStep(3); }}>verder</button></div></>}{generationError && <p className="save-error" role="alert">{generationError}</p>}</div>}
   </section></main>;
 }
