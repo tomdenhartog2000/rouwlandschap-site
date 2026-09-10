@@ -1,10 +1,8 @@
-import Link from "next/link";
-
 export default function OverAi() {
   return (
     <main className="information-page">
       <article className="information-card">
-        <Link className="back-link" href="/">terug</Link>
+        <a className="back-link" href="/">terug</a>
         <p className="eyebrow">over AI en je bijdrage</p>
         <h1>Wat deelname betekent</h1>
         <p className="information-lead">Je kiest zelf wat je maakt, wat je bewaart en of je iets deelt. Niets delen heeft geen gevolgen.</p>
