@@ -40,5 +40,6 @@ export function readAttachments(value: string): StoredAttachment[] {
 }
 
 export function mediaUrl(id: string, name: string) {
+  if (name.startsWith("/")) return name;
   return `/api/contributions/${encodeURIComponent(id)}/media/${encodeURIComponent(name)}`;
 }
