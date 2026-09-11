@@ -7,7 +7,9 @@ export default function OverRouwdieren() {
         <section>
           <p>Wat je hier ziet is gemaakt in een expositie over rouw, door iemand die iemand verloor.</p>
           <p>Bezoekers lopen daar langs wat anderen na een verlies voor zichzelf gevonden hebben: een gewoonte, een voorwerp, een plek, een gezegde, een moment dat blijft terugkomen. Niemand heeft die vormen aangereikt gekregen; ze waren er meestal al voordat er een naam voor was. Wij noemen ze rouwdieren.</p>
-          <p>Ze zijn niet allemaal zacht. Sommige vragen om aandacht, andere om afstand, en een enkele is lastig om bij in de buurt te zijn. Dat maakt ze niet minder.</p>
+          <p>Er wordt vaak gevraagd hoe rouw eruit hoort te zien, en hoelang het mag duren. Zelden wie dat eigenlijk bepaalt, en waarom de vraag niet gaat over wat rouw dóét.</p>
+          <p>Ze zijn niet allemaal zacht. Sommige vragen om aandacht, andere om afstand, sommige zijn boos, en een enkele is lastig om bij in de buurt te zijn. Dat maakt ze niet minder.</p>
+          <p>Verdriet om een dood en woede om een onrecht zijn geen mislukte vormen van rouw. Een rouwdier kan ook tussen mensen in leven, in iets dat je samen doet, en het hoeft helemaal geen vorm aan te nemen. Er is ook geen aantal dat klopt: de een heeft er één, de ander drie, en soms verandert het weer.</p>
         </section>
         <section>
           <p>Daarna kan wie dat wil er zelf een vormgeven. Met de hand, met woorden, met geluid of beeld, en met AI als iemand daarvoor kiest.</p>
