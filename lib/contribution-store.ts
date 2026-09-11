@@ -8,13 +8,14 @@ export function ensureContributionStore() {
   if (!ready) {
     const db = (env as unknown as DatabaseEnv).DB;
     const contributionStatements = expositieRouwdieren.map((item, index) => db.prepare(
-      `INSERT OR IGNORE INTO contributions
+      `INSERT INTO contributions
         (id, title, description, kind, text_value, reference, reference_link, motion, attachments_json, landscape, sharing, exhibition_process, contact_email, contact_consent_at, status, created_at)
-       VALUES (?, ?, ?, 'Expositie', ?, '', '', '', ?, ?, 'online', '', '', 0, 'visible', ?)`,
+       VALUES (?, ?, ?, 'Expositie', ?, '', '', '', ?, ?, 'online', '', '', 0, 'visible', ?)
+       ON CONFLICT(id) DO UPDATE SET description = excluded.description`,
     ).bind(
       item.id,
       item.title,
-      `— ${item.participant}`,
+      "",
       item.text,
       JSON.stringify([{ name: `/rouwdieren-expositie/${item.id}.jpg`, type: "image/jpeg", role: "photo" }]),
       EXPOSITIE_LANDSCHAP_ID,

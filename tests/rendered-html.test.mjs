@@ -198,6 +198,16 @@ test("the old landscape path redirects to the single visitor experience", async 
   assert.match(visitorRoute, /components\/Landschap/);
 });
 
+test("the fixed exhibition starts anonymously without flashing the test landscape", async () => {
+  const exhibition = await source("lib/rouwdieren-expositie.ts");
+  const store = await source("lib/contribution-store.ts");
+  const landscape = await source("components/Landschap.tsx");
+  assert.doesNotMatch(exhibition, /participant:/);
+  assert.match(store, /ON CONFLICT\(id\) DO UPDATE SET description = excluded\.description/);
+  assert.match(store, /item\.title,\s+"",\s+item\.text/);
+  assert.match(landscape, /useState\(\{ id: "", name: "" \}\)/);
+});
+
 test("look-only mode hides every way to add a contribution", async () => {
   const landscape = await source("components/Landschap.tsx");
   const visual = await source("public/landschap-visual.html");
