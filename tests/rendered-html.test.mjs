@@ -278,3 +278,15 @@ test("downloaded cards keep the complete body text", async () => {
   assert.doesNotMatch(makePage, /const bodyLines =[^\n]*slice\(0, 10\)/);
   assert.match(makePage, /bodyLines\.length \* 26/);
 });
+
+test("admin groups contributions by landscape and can rename a landscape", async () => {
+  const adminPage = await source("app/beheer/page.tsx");
+  const landscapeRoute = await source("app/api/admin/landscapes/route.ts");
+  assert.match(adminPage, /Rouwdieren per landschap/);
+  assert.match(adminPage, /className="admin-contribution-group"/);
+  assert.match(adminPage, /landscape\.items\.map\(renderItem\)/);
+  assert.match(adminPage, /renameLandscape/);
+  assert.match(adminPage, /JSON\.stringify\(\{ id, name \}\)/);
+  assert.match(landscapeRoute, /nextName\.length > 80/);
+  assert.match(landscapeRoute, /set\(\{ name: nextName \}\)/);
+});
