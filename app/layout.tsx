@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Rouwdieren",
-  description: "Ontdek en vorm rouwdieren: persoonlijke vormen voor wat met je meeleeft na verlies.",
+  description: "Rouwdieren zijn eigen manieren waarop mensen verder leven met een verlies. Kijk rond bij wat anderen zelf gevonden hebben, of geef iets van jezelf vorm.",
 };
 
 export default function RootLayout({
