@@ -970,8 +970,8 @@ export default function MaakEenRouwdier() {
 
     {step === 6 && <div className="make-intro completion">
       <p className="eyebrow">tot zover</p>
-      <h1>{sharing === "take" ? "Je neemt het mee." : "Je rouwdier heeft nu een plek gekregen."}</h1>
-      <p className="lead">{sharing === "take" ? "Er blijft hier niets van staan. Bewaar het als je het bij je wilt houden." : "Je hebt aangegeven waar deze bijdrage mag leven."}</p>
+      <h1>{sharing === "take" ? "Er is niets gedeeld." : "Je rouwdier heeft nu een plek gekregen."}</h1>
+      <p className="lead">{sharing === "take" ? "Bewaar je rouwdier als je het wilt meenemen." : "Je hebt aangegeven waar deze bijdrage mag leven."}</p>
       <p className="skip-note">Hiermee is niets afgerond. Een rouwdier verandert, en je kunt er later nog een maken.</p>
       <div className="completion-actions">
         <button type="button" className="secondary-button" onClick={downloadCard}>bewaar als afbeelding</button>

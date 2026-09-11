@@ -274,6 +274,8 @@ test("the card QR first opens the explanation page and says visitors can look ar
 
 test("downloaded cards keep the complete body text", async () => {
   const makePage = await source("app/maak/page.tsx");
+  assert.match(makePage, /Er is niets gedeeld\./);
+  assert.match(makePage, /Bewaar je rouwdier als je het wilt meenemen\./);
   assert.match(makePage, /const bodyLines = bodyText \? wrapCanvasText\(context, bodyText, contentWidth\) : \[\]/);
   assert.doesNotMatch(makePage, /const bodyLines =[^\n]*slice\(0, 10\)/);
   assert.match(makePage, /bodyLines\.length \* 26/);
