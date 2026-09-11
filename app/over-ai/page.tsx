@@ -5,7 +5,7 @@ export default function OverAi() {
         <a className="back-link" href="/">terug</a>
         <p className="eyebrow">over AI en je bijdrage</p>
         <h1>Wat deelname betekent</h1>
-        <p className="information-lead">Je kiest zelf wat je maakt, wat je bewaart en of je iets deelt. Niets delen heeft geen gevolgen.</p>
+        <p className="information-lead">Je kiest zelf wat je maakt, wat je bewaart en of je iets deelt. Je bent vrij om niets te delen.</p>
 
         <section>
           <h2>Als je iets deelt</h2>
