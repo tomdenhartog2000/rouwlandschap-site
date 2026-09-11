@@ -287,6 +287,10 @@ test("admin groups contributions by landscape and can rename a landscape", async
   assert.match(adminPage, /landscape\.items\.map\(renderItem\)/);
   assert.match(adminPage, /renameLandscape/);
   assert.match(adminPage, /JSON\.stringify\(\{ id, name \}\)/);
+  assert.match(adminPage, /editingLandscapeId === landscape\.id/);
+  assert.match(adminPage, /aria-label=\{`Bewerk naam van/);
+  assert.match(adminPage, />✎<\/button>/);
+  assert.match(adminPage, /annuleren/);
   assert.match(landscapeRoute, /nextName\.length > 80/);
   assert.match(landscapeRoute, /set\(\{ name: nextName \}\)/);
 });

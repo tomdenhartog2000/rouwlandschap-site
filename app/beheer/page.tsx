@@ -13,6 +13,7 @@ export default function Beheer() {
   const [busyId, setBusyId] = useState("");
   const [landscapes, setLandscapes] = useState<ManagedLandscape[]>([]);
   const [landscapeNames, setLandscapeNames] = useState<Record<string, string>>({});
+  const [editingLandscapeId, setEditingLandscapeId] = useState("");
 
   const load = async () => {
     const response = await fetch("/api/admin/contributions", { cache: "no-store" });
@@ -74,7 +75,13 @@ export default function Beheer() {
       return;
     }
     setMessage("");
+    setEditingLandscapeId("");
     await load();
+  };
+
+  const cancelRename = (landscape: ManagedLandscape) => {
+    setLandscapeNames((current) => ({ ...current, [landscape.id]: landscape.name }));
+    setEditingLandscapeId("");
   };
 
   const groupedLandscapes = useMemo(() => {
@@ -116,11 +123,8 @@ export default function Beheer() {
     <section className="admin-landscapes"><h2>Landschappen</h2><p>Nieuwe rouwdieren worden aan het huidige landschap toegevoegd. Alleen zichtbare landschappen staan in het menu voor bezoekers.</p>{landscapes.map((landscape) => {
       const changedName = (landscapeNames[landscape.id] ?? "").trim();
       return <article key={landscape.id} className="admin-landscape">
-        <div><strong>{landscape.name}</strong><span>{landscape.active ? "huidig landschap" : ""}</span></div>
-        <div className="admin-landscape-settings">
-          <form className="admin-landscape-rename" onSubmit={(event) => void renameLandscape(event, landscape.id)}><label htmlFor={`landscape-name-${landscape.id}`}>naam</label><input id={`landscape-name-${landscape.id}`} type="text" maxLength={80} value={landscapeNames[landscape.id] ?? landscape.name} onChange={(event) => setLandscapeNames((current) => ({ ...current, [landscape.id]: event.target.value }))} /><button type="submit" className="secondary-button" disabled={busyId === `landscape:${landscape.id}` || !changedName || changedName === landscape.name}>naam opslaan</button></form>
-          <div className="admin-actions"><button type="button" className={landscape.active ? "is-selected" : "secondary-button"} disabled={Boolean(landscape.active)} onClick={() => void activateLandscape(landscape.id)}>{landscape.active ? "huidig" : "maak huidig"}</button><label><input type="checkbox" checked={Boolean(landscape.visible)} onChange={(event) => void setLandscapeVisibility(landscape.id, event.target.checked)} /> zichtbaar in het bezoekersmenu</label></div>
-        </div>
+        <div>{editingLandscapeId === landscape.id ? <form className="admin-landscape-rename" onSubmit={(event) => void renameLandscape(event, landscape.id)}><label className="sr-only" htmlFor={`landscape-name-${landscape.id}`}>naam van het landschap</label><input autoFocus id={`landscape-name-${landscape.id}`} type="text" maxLength={80} value={landscapeNames[landscape.id] ?? landscape.name} onChange={(event) => setLandscapeNames((current) => ({ ...current, [landscape.id]: event.target.value }))} /><button type="submit" className="secondary-button" disabled={busyId === `landscape:${landscape.id}` || !changedName || changedName === landscape.name}>opslaan</button><button type="button" className="quiet-button" onClick={() => cancelRename(landscape)}>annuleren</button></form> : <div className="admin-landscape-name-row"><strong>{landscape.name}</strong><button type="button" className="admin-edit-name" aria-label={`Bewerk naam van ${landscape.name}`} title="naam bewerken" onClick={() => setEditingLandscapeId(landscape.id)}>✎</button></div>}<span>{landscape.active ? "huidig landschap" : ""}</span></div>
+        <button type="button" className={landscape.active ? "is-selected" : "secondary-button"} disabled={Boolean(landscape.active)} onClick={() => void activateLandscape(landscape.id)}>{landscape.active ? "huidig" : "maak huidig"}</button><label><input type="checkbox" checked={Boolean(landscape.visible)} onChange={(event) => void setLandscapeVisibility(landscape.id, event.target.checked)} /> zichtbaar in het bezoekersmenu</label>
       </article>;
     })}</section>
     <section className="admin-contribution-groups"><h2>Rouwdieren per landschap</h2>{groupedLandscapes.map((landscape) => <details key={landscape.id} className="admin-contribution-group" defaultOpen={Boolean(landscape.active)}><summary><span>{landscape.name}</span><small>{landscape.items.length === 1 ? "1 rouwdier" : `${landscape.items.length} rouwdieren`}</small></summary><div className="admin-list">{landscape.items.length === 0 ? <p className="admin-empty">Er zijn nog geen rouwdieren in dit landschap.</p> : landscape.items.map(renderItem)}</div></details>)}</section>
