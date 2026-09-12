@@ -11,7 +11,10 @@ export function ensureContributionStore() {
       `INSERT INTO contributions
         (id, title, description, kind, text_value, reference, reference_link, motion, attachments_json, landscape, sharing, exhibition_process, contact_email, contact_consent_at, status, created_at)
        VALUES (?, ?, ?, 'Expositie', ?, '', '', '', ?, ?, 'online', '', '', 0, 'visible', ?)
-       ON CONFLICT(id) DO UPDATE SET description = excluded.description`,
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title,
+         description = excluded.description,
+         text_value = excluded.text_value`,
     ).bind(
       item.id,
       item.title,

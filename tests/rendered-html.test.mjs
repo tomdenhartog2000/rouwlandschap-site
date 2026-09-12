@@ -203,7 +203,12 @@ test("the fixed exhibition starts anonymously without flashing the test landscap
   const store = await source("lib/contribution-store.ts");
   const landscape = await source("components/Landschap.tsx");
   assert.doesNotMatch(exhibition, /participant:/);
-  assert.match(store, /ON CONFLICT\(id\) DO UPDATE SET description = excluded\.description/);
+  assert.equal((exhibition.match(/\{ id: "/g) ?? []).length, 18);
+  assert.match(exhibition, /title: "Regenboog"/);
+  assert.match(exhibition, /title: "Boswezen"/);
+  assert.match(exhibition, /Op de uitvaart werd een nummer over de regenboog gedraaid/);
+  assert.doesNotMatch(exhibition, /title: "(?:Rainbow|Forest creature|White butterfly)"/);
+  assert.match(store, /ON CONFLICT\(id\) DO UPDATE SET\s+title = excluded\.title,\s+description = excluded\.description,\s+text_value = excluded\.text_value/);
   assert.match(store, /item\.title,\s+"",\s+item\.text/);
   assert.match(landscape, /useState\(\{ id: "", name: "" \}\)/);
 });
