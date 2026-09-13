@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import QRCode from "qrcode";
+import { projectExplanationUrl } from "@/lib/landscape-links";
 
 type InputMode = "write" | "photo" | "draw" | "sounddraw" | "voice" | "reference";
 type AiPath = "none" | "together" | "translate";
@@ -105,7 +106,8 @@ const sonificationInstruments: Array<{ id: SonificationInstrument; title: string
 
 export default function MaakEenRouwdier() {
   const [landscape, setLandscape] = useState({ id: "test", name: "Testlandschap" });
-  useEffect(() => { void fetch("/api/landscapes/active", { cache: "no-store" }).then((response) => response.json()).then((data: { landscape?: { id?: string; name?: string } }) => { if (data.landscape?.id && data.landscape.name) setLandscape({ id: data.landscape.id, name: data.landscape.name }); }).catch(() => undefined); }, []);
+  const [hasLoadedLandscape, setHasLoadedLandscape] = useState(false);
+  useEffect(() => { void fetch("/api/landscapes/active", { cache: "no-store" }).then((response) => response.json()).then((data: { landscape?: { id?: string; name?: string } }) => { if (data.landscape?.id && data.landscape.name) { setLandscape({ id: data.landscape.id, name: data.landscape.name }); setHasLoadedLandscape(true); } }).catch(() => undefined); }, []);
   const [step, setStep] = useState(1);
   const [modes, setModes] = useState<InputMode[]>([]);
   const [words, setWords] = useState("");
@@ -155,6 +157,7 @@ export default function MaakEenRouwdier() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedContributionId, setSavedContributionId] = useState("");
+  const [savedContributionLandscapeId, setSavedContributionLandscapeId] = useState("");
   const aiRequestInFlightRef = useRef(false);
   const aiRequestSequenceRef = useRef(0);
   const aiAbortControllerRef = useRef<AbortController | null>(null);
@@ -742,9 +745,10 @@ export default function MaakEenRouwdier() {
       const submissionRequestId = submissionRequestIdRef.current || crypto.randomUUID();
       submissionRequestIdRef.current = submissionRequestId;
       const response = await fetch("/api/contributions", { method: "POST", headers: { "Idempotency-Key": submissionRequestId }, body: data });
-      const result = await response.json().catch(() => ({})) as { error?: string; contribution?: { id?: string } };
+      const result = await response.json().catch(() => ({})) as { error?: string; contribution?: { id?: string; landscape?: string } };
       if (!response.ok) throw new Error(result.error || "Je rouwdier kon niet worden toegevoegd.");
       setSavedContributionId(result.contribution?.id || "");
+      setSavedContributionLandscapeId(result.contribution?.landscape || "");
       setStep(6);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Je rouwdier kon niet worden toegevoegd.");
@@ -882,7 +886,8 @@ export default function MaakEenRouwdier() {
     context.fillText("Meer weten over rouwdieren?", inset + padding, projectFooterTop);
     context.fillText("Scan de QR-code en kijk eventueel rond", inset + padding, projectFooterTop + 21);
     context.fillText("tussen die van anderen.", inset + padding, projectFooterTop + 42);
-    const qrUrl = `${window.location.origin}/over-rouwdieren`;
+    const qrLandscapeId = savedContributionLandscapeId || (hasLoadedLandscape ? landscape.id : "");
+    const qrUrl = projectExplanationUrl(window.location.origin, qrLandscapeId);
     const qrImage = await new Promise<HTMLImageElement | null>((resolve) => {
       QRCode.toDataURL(qrUrl, { width: 112, margin: 1, color: { dark: "#2e2b26", light: "#fffdf8" } }).then((source) => {
         const image = new Image(); image.onload = () => resolve(image); image.onerror = () => resolve(null); image.src = source;
@@ -992,7 +997,7 @@ export default function MaakEenRouwdier() {
         <button type="button" className="secondary-button" onClick={downloadCard}>bewaar als afbeelding</button>
         {savedAudioUrl && <a className="secondary-button" href={savedAudioUrl} download={sonificationUrl ? "klank-van-de-tekening.wav" : "geluidsopname.webm"}>bewaar {sonificationUrl ? "klank" : "geluidsopname"}</a>}
       </div>
-      <div className="step-actions"><a className="primary-button" href={savedContributionId ? `/verken?landschap=${landscape.id}&nieuw=${encodeURIComponent(savedContributionId)}` : `/verken?landschap=${landscape.id}`}>{sharing === "take" ? `bekijk de rouwdieren van anderen in het ${landscape.name}` : `bekijk jouw rouwdier en dat van anderen in het ${landscape.name}`}</a></div>
+      <div className="step-actions"><a className="primary-button" href={savedContributionId ? `/verken?landschap=${savedContributionLandscapeId || landscape.id}&nieuw=${encodeURIComponent(savedContributionId)}` : `/verken?landschap=${landscape.id}`}>{sharing === "take" ? `bekijk de rouwdieren van anderen in het ${landscape.name}` : `bekijk jouw rouwdier en dat van anderen in het ${landscape.name}`}</a></div>
     </div>}
     {step === 22 && aiFormsSelected.includes("text") && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiTextResult ? "Kijk even naar de tekstversie." : "Wat mag AI met je woorden doen?"}</h1><p className="lead">AI ordent alleen wat jij zelf hebt geschreven. Je kunt de tekst gebruiken, aanpassen of niet gebruiken.</p><label className="title-field">wat mag helderder of anders geordend? <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: houd mijn woorden, maar maak de volgorde rustiger" aria-label="Wat mag AI met je woorden doen" /></label><label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik geef toestemming om mijn woorden met AI te ordenen.</span><small>OpenAI ordent ze zonder nieuwe inhoud toe te voegen. Alleen wat ik zelf kies komt op mijn kaartje.</small></label>{!aiTextResult ? <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent} onClick={() => void createAiText()}>{isGenerating ? "tekst wordt geordend…" : "orden mijn woorden"}</button></div> : <><div className="ai-result ai-text-result">{aiTextResult}</div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "adjust" ? "is-selected" : ""} onClick={() => setFeedbackDirection("adjust")}>Ik wil iets veranderen</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder AI verder</button></div>{feedbackDirection === "adjust" && <div className="feedback-followup"><p>Vertel wat je anders wilt.</p><textarea className="feedback-field" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Schrijf wat je wilt veranderen." aria-label="Wat wil je veranderen" /><button type="button" className="secondary-button" disabled={isGenerating} onClick={() => void createAiText(feedback)}>{isGenerating ? "tekst wordt geordend…" : "maak een nieuwe versie"}</button></div>}<div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection || feedbackDirection === "adjust"} onClick={() => { if (feedbackDirection === "keep") setWords(aiTextResult); if (feedbackDirection === "without") { setAiPath("none"); setAiFormsSelected([]); setStep(3); return; } setStep(nextStepAfterText); }}>verder</button></div></>}{generationError && <p className="save-error" role="alert">{generationError}</p>}</div>}
     {step === 23 && hasMotionForm && <div><p className="eyebrow">2 van 5 · vormgeven</p><h1>{aiMotion ? "Kijk even naar de beweging." : "Hoe mag je rouwdier bewegen?"}</h1><p className="lead">De beweging verschijnt alleen wanneer iemand jouw rouwdier opent. Het landschap zelf blijft rustig.</p><label className="title-field">wat wil je dat de beweging doet? <span>optioneel</span><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder="Bijvoorbeeld: heel rustig, alsof het even blijft hangen" aria-label="Wat wil je dat de beweging doet" /></label><label className="consent-field transcript-choice"><input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} /><span>Ik geef toestemming voor deze AI-bewerking.</span></label>{!aiMotion ? <div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={isGenerating || !hasAiConsent} onClick={() => void createAiMotion()}>{isGenerating ? "beweging wordt gekozen…" : "kies een beweging"}</button></div> : <><div className={`motion-preview motion-${aiMotion}`}>{motionPreviewImage ? <img className="motion-preview-subject" src={motionPreviewImage} alt="Voorvertoning van jouw bijdrage met beweging" /> : <p className="motion-preview-subject motion-preview-words">{motionPreviewWords}</p>}<p>{aiMotion === "heartbeat" ? "een lichte hartslag" : aiMotion === "drift" ? "een zachte beweging die langzaam wegdrijft" : aiMotion === "sway" ? "een rustige beweging van links naar rechts" : "een beweging die langzaam ademt"}</p></div><div className="feedback-choices"><button type="button" className={feedbackDirection === "keep" ? "is-selected" : ""} onClick={() => setFeedbackDirection("keep")}>Dit voelt passend</button><button type="button" className={feedbackDirection === "without" ? "is-selected" : ""} onClick={() => setFeedbackDirection("without")}>Ik wil zonder beweging verder</button></div><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(2)}>terug</button><button type="button" className="primary-button" disabled={!feedbackDirection} onClick={() => { if (feedbackDirection === "without") setAiMotion(""); setStep(3); }}>verder</button></div></>}{generationError && <p className="save-error" role="alert">{generationError}</p>}</div>}

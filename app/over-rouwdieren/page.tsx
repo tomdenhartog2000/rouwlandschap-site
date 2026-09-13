@@ -1,4 +1,7 @@
-export default function OverRouwdieren() {
+import { landscapeViewerPath, type LandscapeQueryValue } from "@/lib/landscape-links";
+
+export default async function OverRouwdieren({ searchParams }: { searchParams: Promise<{ landschap?: LandscapeQueryValue }> }) {
+  const landscapeId = (await searchParams).landschap;
   return (
     <main className="information-page">
       <article className="information-card project-information-card">
@@ -15,7 +18,7 @@ export default function OverRouwdieren() {
           <p>Daarna kan wie dat wil er zelf een vormgeven. Met de hand, met woorden, met geluid of beeld, en met AI als iemand daarvoor kiest.</p>
           <p>Dit kaartje hoort bij één rouwdier, in de vorm die de maker ervoor koos. Het is er één versie van, op één moment; het kan er morgen anders uitzien. Wie het achterlaat, laat het zonder naamsvermelding achter, in het online landschap of in de opstelling zelf. De tekst, het beeld of de stem kan wel herkenbaar zijn. Wie het meeneemt, houdt het voor zichzelf.</p>
         </section>
-        <p className="information-source"><a className="primary-button" href="/verken?kijk=1">bekijk het online landschap</a></p>
+        <p className="information-source"><a className="primary-button" href={landscapeViewerPath(landscapeId)}>bekijk het online landschap</a></p>
         <p className="information-source"><a href="/over-ai">Lees over AI en je bijdrage</a></p>
       </article>
     </main>

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { landscapeViewerPath, normaliseLandscapeId, projectExplanationUrl } from "../lib/landscape-links.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -301,10 +302,22 @@ test("exhibition sharing supports contact or an anonymous designer follow-up", a
 
 test("the card QR first opens the explanation page and says visitors can look around", async () => {
   const makePage = await source("app/maak/page.tsx");
+  const explanationPage = await source("app/over-rouwdieren/page.tsx");
   assert.match(makePage, /Meer weten over rouwdieren\?/);
   assert.match(makePage, /Scan de QR-code en kijk eventueel rond/);
   assert.match(makePage, /tussen die van anderen\./);
-  assert.match(makePage, /window\.location\.origin\}\/over-rouwdieren/);
+  assert.match(makePage, /projectExplanationUrl\(window\.location\.origin, qrLandscapeId\)/);
+  assert.match(makePage, /savedContributionLandscapeId \|\| \(hasLoadedLandscape \? landscape\.id : ""\)/);
+  assert.match(makePage, /setSavedContributionLandscapeId\(result\.contribution\?\.landscape \|\| ""\)/);
+  assert.match(explanationPage, /landscapeViewerPath\(landscapeId\)/);
+});
+
+test("landscape-aware card links preserve a valid place and safely ignore invalid input", () => {
+  assert.equal(normaliseLandscapeId(["expositie", "test"]), "expositie");
+  assert.equal(projectExplanationUrl("https://voorbeeld.nl/maak", "expositie"), "https://voorbeeld.nl/over-rouwdieren?landschap=expositie");
+  assert.equal(landscapeViewerPath("expositie"), "/verken?kijk=1&landschap=expositie");
+  assert.equal(landscapeViewerPath(""), "/verken?kijk=1");
+  assert.equal(landscapeViewerPath("<script>"), "/verken?kijk=1");
 });
 
 test("downloaded cards keep the complete body text", async () => {
