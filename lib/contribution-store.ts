@@ -10,11 +10,12 @@ export function ensureContributionStore() {
     const contributionStatements = expositieRouwdieren.map((item, index) => db.prepare(
       `INSERT INTO contributions
         (id, title, description, kind, text_value, reference, reference_link, motion, attachments_json, landscape, sharing, exhibition_process, contact_email, contact_consent_at, status, created_at)
-       VALUES (?, ?, ?, 'Expositie', ?, '', '', '', ?, ?, 'online', '', '', 0, 'visible', ?)
+       VALUES (?, ?, ?, 'Expositie', ?, '', '', '', ?, ?, 'online', '', '', 0, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          title = excluded.title,
          description = excluded.description,
-         text_value = excluded.text_value`,
+         text_value = excluded.text_value,
+         status = CASE WHEN excluded.status = 'hidden' THEN 'hidden' ELSE contributions.status END`,
     ).bind(
       item.id,
       item.title,
@@ -22,6 +23,7 @@ export function ensureContributionStore() {
       item.text,
       JSON.stringify([{ name: `/rouwdieren-expositie/${item.id}.jpg`, type: "image/jpeg", role: "photo" }]),
       EXPOSITIE_LANDSCHAP_ID,
+      item.status ?? "visible",
       index + 1,
     ));
     ready = db.batch([

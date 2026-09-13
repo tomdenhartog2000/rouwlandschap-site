@@ -8,11 +8,12 @@ export type ExpositieRouwdier = {
   id: string;
   title: string;
   text: string;
+  status?: "visible" | "hidden";
 };
 
 export const expositieRouwdieren: ExpositieRouwdier[] = [
   { id: "rainbow", title: "Regenboog", text: "Op de uitvaart werd een nummer over de regenboog gedraaid. Sindsdien komt de regenboog steeds terug, en nu is hij één met haar." },
-  { id: "house-on-a-star", title: "Huisje op de ster", text: "In mijn hoofd zit mijn nichtje in een huisje op een ster. Daar zou mijn rouwdier willen wonen." },
+  { id: "house-on-a-star", title: "Huisje op de ster", text: "In mijn hoofd zit mijn nichtje in een huisje op een ster. Daar zou mijn rouwdier willen wonen.", status: "hidden" },
   { id: "speck", title: "Stipje", text: "Mijn rouwdier overspoelt me niet meer. Het is klein en ver weg geworden, een stipje in de zee achter de duinen, maar het is er altijd en heeft soms nog iets van zorg nodig." },
   { id: "psalm-23", title: "Psalm 23", text: "Als ik deze psalm hoor of lees, voel ik mijn oma. In die woorden komt de liefde voor haar terug, en daarna de vrede dat ze nu op een mooie plek is." },
   { id: "collective-peace", title: "Collectieve vrede", text: "Als ik bij mijn familie ben en aan de dood denk, is er een vrede die van ons allemaal samen is. Het was goed zo, al was het verdrietig, en die twee horen ook bij elkaar." },
