@@ -35,18 +35,31 @@ const loadSoundfont = () => {
   return soundfontScript;
 };
 
-const inputs: Array<{ id: InputMode; title: string; text: string; symbol: string }> = [
-  { id: "write", title: "Schrijven", text: "Een woord, herinnering of iets dat nog geen vorm heeft.", symbol: "Aa" },
-  { id: "photo", title: "Fotograferen", text: "Een beeld van iets dat je al bij je hebt of hier maakt.", symbol: "camera" },
-  { id: "draw", title: "Tekenen", text: "Een spoor, schets of vorm die je hier maakt.", symbol: "〰" },
-  { id: "sounddraw", title: "Klank maken", text: "Een klank die ontstaat uit hoe je tekent.", symbol: "⌁" },
-  { id: "voice", title: "Opnemen", text: "Je stem, een klank of een moment van geluid.", symbol: "microphone" },
-  { id: "reference", title: "Aanwijzen", text: "Een liedje, tekst, gezegde of plek die al bestaat.", symbol: "↗" },
+const inputs: Array<{ id: InputMode; title: string; text: string }> = [
+  { id: "write", title: "Schrijven", text: "Een woord, herinnering of iets dat nog geen vorm heeft." },
+  { id: "photo", title: "Fotograferen", text: "Een beeld van iets dat je al bij je hebt of hier maakt." },
+  { id: "draw", title: "Tekenen", text: "Een spoor, schets of vorm die je hier maakt." },
+  { id: "sounddraw", title: "Klank maken", text: "Een klank die ontstaat uit hoe je tekent." },
+  { id: "voice", title: "Opnemen", text: "Je stem, een klank of een moment van geluid." },
+  { id: "reference", title: "Aanwijzen", text: "Een liedje, tekst, gezegde of plek die al bestaat." },
 ];
 const inputGroups: Array<{ id: string; title: string; inputIds: InputMode[] }> = [
   { id: "vastleggen", title: "Vastleggen", inputIds: ["photo", "voice", "reference"] },
   { id: "vormgeven", title: "Vormgeven", inputIds: ["write", "draw", "sounddraw"] },
 ];
+
+const inputIconPaths: Record<InputMode, string[]> = {
+  write: ["M6 3.75h9l3 3V20.25H6z", "M15 3.75v3h3", "M9 11h6", "M9 15h6"],
+  photo: ["M4 7.5h3l1.5-2h7l1.5 2h3v11H4z", "M12 16a3.25 3.25 0 1 0 0-6.5A3.25 3.25 0 0 0 12 16z"],
+  draw: ["M5 19l1-4 9.75-9.75a2.12 2.12 0 0 1 3 3L9 18z", "M14.5 6.5l3 3"],
+  sounddraw: ["M4 12v2", "M8 9v8", "M12 5v14", "M16 8v8", "M20 11v3"],
+  voice: ["M12 15.5a3 3 0 0 0 3-3v-5a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z", "M6.5 12.5a5.5 5.5 0 0 0 11 0", "M12 18v3", "M9 21h6"],
+  reference: ["M9.5 14.5l5-5", "M7.75 16.25l-1 1a3.18 3.18 0 0 1-4.5-4.5l3-3a3.18 3.18 0 0 1 4.5 0", "M14.25 7.75l1-1a3.18 3.18 0 0 1 4.5 4.5l-3 3a3.18 3.18 0 0 1-4.5 0"],
+};
+
+function InputModeIcon({ mode }: { mode: InputMode }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" focusable="false">{inputIconPaths[mode].map((path) => <path d={path} key={path} />)}</svg>;
+}
 const MAX_PHOTOS = 5;
 
 function normaliseReferenceLink(value: string) {
@@ -921,7 +934,7 @@ export default function MaakEenRouwdier() {
   const CardPreview = ({ compact = false }: { compact?: boolean }) => <article className={`rouwdier-card ${compact ? "is-compact" : ""}`} aria-label="Voorvertoning van je rouwdierkaartje"><p className="card-kicker">rouwdier</p><h2>{visibleTitle}</h2>{aiImageDataUrl ? <><div className="card-ai-image"><img className="card-image" src={aiImageDataUrl} alt="Beeldvoorstel van AI" /></div>{showOriginalVisualsWithAi && <OriginalVisualPreview labelled />}</> : <OriginalVisualPreview />}{!aiImageDataUrl && !originalVisuals.length && savedAudioUrl && <div className="audio-cover"><span>{sonificationUrl ? "klank van de tekening" : "geluidsopname"}</span><i aria-hidden="true" /></div>}{savedAudioUrl && <audio className="card-audio" controls src={savedAudioUrl}>Je browser kan deze opname niet afspelen.</audio>}{words.trim() && <p className="card-words card-original-words">{words}</p>}{visibleDescription && visibleDescription !== words.trim() && <p className="card-description">{visibleDescription}</p>}{reference.trim() && <p className="card-reference">{reference}</p>}{validReferenceLink && <p className="card-reference">link naar de verwijzing toegevoegd</p>}<footer className="card-project-footer"><span>Meer weten over rouwdieren?</span><small>Scan de QR-code en kijk eventueel rond tussen die van anderen.</small></footer></article>;
 
   return <main className="make-page"><header className="make-header"><a href="/verken" className="back-link">← terug naar het landschap</a></header><section className="make-card" aria-live="polite">
-    {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Waar kan jouw rouwdier uit bestaan?</h1><p className="lead">Je kunt iets vastleggen, iets vormgeven, of verschillende vormen combineren.</p><div className="input-groups">{inputGroups.map((group) => <section className="input-group" key={group.id} aria-labelledby={`input-group-${group.id}`}><h2 id={`input-group-${group.id}`}>{group.title}</h2><div className="input-options">{group.inputIds.map((inputId) => { const input = inputs.find((item) => item.id === inputId)!; const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className={`input-symbol ${input.symbol === "camera" ? "input-symbol-camera" : input.symbol === "microphone" ? "input-symbol-microphone" : ""}`} aria-hidden="true">{input.symbol !== "camera" && input.symbol !== "microphone" ? input.symbol : <span />}</span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div></section>)}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
+    {step === 1 && <div><p className="eyebrow">1 van 5 · iets meenemen</p><h1>Waar kan jouw rouwdier uit bestaan?</h1><p className="lead">Je kunt iets vastleggen, iets vormgeven, of verschillende vormen combineren.</p><div className="input-groups">{inputGroups.map((group) => <section className="input-group" key={group.id} aria-labelledby={`input-group-${group.id}`}><h2 id={`input-group-${group.id}`}>{group.title}</h2><div className="input-options">{group.inputIds.map((inputId) => { const input = inputs.find((item) => item.id === inputId)!; const isSelected = modes.includes(input.id); return <button type="button" key={input.id} aria-pressed={isSelected} className={`input-option ${isSelected ? "is-selected" : ""}`} onClick={() => toggleMode(input.id)}><span className="input-symbol" aria-hidden="true"><InputModeIcon mode={input.id} /></span><span><strong>{input.title}</strong><small>{input.text}</small></span><span className="input-state">{isSelected ? "toegevoegd" : "voeg toe"}</span></button>; })}</div></section>)}</div>{modes.length ? <div className="input-surfaces">{modes.map(renderInput)}</div> : <p className="empty-input-message">Je kunt iets kiezen, of meteen verdergaan.</p>}<div className="step-actions"><a className="quiet-button" href="/">terug</a><button type="button" className="primary-button" onClick={() => setStep(2)}>verder</button></div></div>}
 
     {step === 3 && <div><p className="eyebrow">3 van 5 · even stilstaan</p><h1>Wat doet dit met jou? En wat vraagt jouw rouwdier van je?</h1><textarea className="feedback-field care-field" value={careReflection} onChange={(event) => setCareReflection(event.target.value)} placeholder="Als je wil kun je hier iets over schrijven." aria-label="Toelichting over wat dit met jou doet en wat jouw rouwdier vraagt" /><p className="skip-note">Je kunt ook meteen verder.</p><div className="step-actions"><button type="button" className="quiet-button" onClick={() => setStep(hasAi ? previousAiStep : 2)}>terug</button><button type="button" className="primary-button" onClick={prepareCard}>verder</button></div></div>}
 
