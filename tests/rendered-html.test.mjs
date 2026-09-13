@@ -212,8 +212,11 @@ test("audio remains attached when an AI image is shared", async () => {
 
 test("the graduation exhibition landscape is visible but does not become active", async () => {
   const store = await source("lib/contribution-store.ts");
+  const migration = await source("drizzle/0008_graduation_exhibition_landscape.sql");
   assert.match(store, /'afstudeerexpositie', 'Landschap van de afstudeerexpositie', 0, 1, 4/);
   assert.match(store, /'Landschap van de expositie', 0, 1, 3/);
+  assert.match(migration, /'afstudeerexpositie', 'Landschap van de afstudeerexpositie', 0, 1, 4/);
+  assert.match(migration, /CASE WHEN id = 'expositie' THEN 1 ELSE 0 END/);
 });
 
 test("the old landscape path redirects to the single visitor experience", async () => {
