@@ -31,6 +31,7 @@ export function ensureContributionStore() {
       db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('museum', 'Museumlandschap', 0, 0, 1)"),
       db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('stilte', 'Landschap van stilte', 0, 0, 2)"),
       db.prepare(`INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('${EXPOSITIE_LANDSCHAP_ID}', 'Landschap van de expositie', 0, 1, 3)`),
+      db.prepare("INSERT OR IGNORE INTO landscapes (id, name, active, visible, created_at) VALUES ('afstudeerexpositie', 'Landschap van de afstudeerexpositie', 0, 1, 4)"),
       ...contributionStatements,
     ]).then(() => undefined);
   }

@@ -191,6 +191,31 @@ test("sound drawing only offers instrument sounds", async () => {
   assert.match(page, /title: "strijkers"/);
 });
 
+test("the sound and AI boundary is explicit and a sound-only drawing has no dead-end AI route", async () => {
+  const makePage = await source("app/maak/page.tsx");
+  const aiPage = await source("app/over-ai/page.tsx");
+  assert.match(makePage, /AI luistert niet naar deze klank/);
+  assert.match(makePage, /AI kan alleen gesproken woorden gebruiken/);
+  assert.match(makePage, /AI gebruikt losse geluiden niet voor het beeld/);
+  assert.match(makePage, /disabled=\{!canUseAi\}/);
+  assert.match(makePage, /Bewaar ook het tekenbeeld of voeg woorden of een foto toe/);
+  assert.match(aiPage, /AI interpreteert geen losse geluiden, stemklank of omgevingsgeluid/);
+  assert.match(aiPage, /bij een klanktekening luistert AI niet naar de gemaakte klank/);
+});
+
+test("audio remains attached when an AI image is shared", async () => {
+  const page = await source("app/maak/page.tsx");
+  assert.match(page, /const audioFileToShare = sonificationFileRef\.current \|\| audioFileRef\.current/);
+  assert.match(page, /if \(audioFileToShare\) data\.set\("audio", audioFileToShare\)/);
+  assert.doesNotMatch(page, /!hasAiEndProduct && \(sonificationFileRef\.current \|\| audioFileRef\.current\)/);
+});
+
+test("the graduation exhibition landscape is visible but does not become active", async () => {
+  const store = await source("lib/contribution-store.ts");
+  assert.match(store, /'afstudeerexpositie', 'Landschap van de afstudeerexpositie', 0, 1, 4/);
+  assert.match(store, /'Landschap van de expositie', 0, 1, 3/);
+});
+
 test("the old landscape path redirects to the single visitor experience", async () => {
   const oldRoute = await source("app/landschap/page.tsx");
   const visitorRoute = await source("app/verken/page.tsx");

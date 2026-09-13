@@ -516,6 +516,8 @@ body:has(.admin-page) {
 .choice-list { gap: 9px; margin-top: 22px; }
 .choice-list button { gap: 4px; padding: 15px 16px; color: #2e2b26; background: transparent; border: 1px solid #cfc7ba; border-radius: 3px; }
 .choice-list button:hover, .choice-list button.is-selected { background: #ebe6dc; border-color: #6b655b; }
+.choice-list button:disabled { opacity: .5; cursor: not-allowed; }
+.choice-list button:disabled:hover { background: transparent; border-color: #cfc7ba; }
 .choice-list strong { font-size: 16px; font-weight: 400; }
 .choice-list span { color: #6b655b; font-size: 14px; line-height: 1.42; }
 .test-note { color: #6b655b; font-size: 14px; }
