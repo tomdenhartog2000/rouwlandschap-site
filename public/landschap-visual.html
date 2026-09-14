@@ -1532,6 +1532,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           sparks.forEach((button) =&gt; { button.hidden = !selected.hasSpark; });
         }
       });
+      document.addEventListener(&#x27;pointerdown&#x27;, () =&gt; window.top.postMessage({ type: &#x27;rouwdier:landscape-pointerdown&#x27; }, &#x27;*&#x27;));
       window.top.postMessage({ type: &#x27;rouwdier:landscape-ready&#x27; }, &#x27;*&#x27;);
     })();
   &lt;/script&gt;

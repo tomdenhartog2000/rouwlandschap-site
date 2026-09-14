@@ -65,6 +65,7 @@ export default function Landschap() {
   const [landscape, setLandscape] = useState({ id: "", name: "" });
   const [visitorLandscapes, setVisitorLandscapes] = useState<Array<{ id: string; name: string }>>([]);
   const [landscapeMenuOpen, setLandscapeMenuOpen] = useState(false);
+  const landscapeControlRef = useRef<HTMLDivElement>(null);
   const landscapeRef = useRef<HTMLElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const initialLandscapeRef = useRef(true);
@@ -152,10 +153,21 @@ export default function Landschap() {
     const openMakeSpace = (event: MessageEvent) => {
       if (event.data?.type === "rouwdier:open-make" && !kijkAlleen) window.location.assign("/maak");
       if (event.data?.type === "rouwdier:landscape-ready") configureLandscapeMenu();
+      if (event.data?.type === "rouwdier:landscape-pointerdown") setLandscapeMenuOpen(false);
     };
     window.addEventListener("message", openMakeSpace);
     return () => window.removeEventListener("message", openMakeSpace);
   }, [kijkAlleen, visitorLandscapes]);
+
+  useEffect(() => {
+    if (!landscapeMenuOpen) return;
+    const closeMenuOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && landscapeControlRef.current?.contains(event.target)) return;
+      setLandscapeMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeMenuOutside);
+    return () => document.removeEventListener("pointerdown", closeMenuOutside);
+  }, [landscapeMenuOpen]);
 
   useEffect(() => {
     let typed = "";
@@ -202,7 +214,7 @@ export default function Landschap() {
   return (
     <main className="landscape-shell" ref={landscapeRef}>
       <iframe ref={iframeRef} className="landscape-frame" src="/landschap-visual.html?v=landschap-zonder-testbijdragen" title={landscape.name ? `Interactief ${landscape.name}` : "Interactief landschap"} allow="fullscreen" onLoad={configureLandscapeMenu} />
-      {landscape.id && <div className="visitor-landscape-control">
+      {landscape.id && <div className="visitor-landscape-control" ref={landscapeControlRef}>
         <button type="button" className="visitor-landscape-toggle" aria-label="Open landschappenmenu" aria-expanded={landscapeMenuOpen} onClick={() => setLandscapeMenuOpen((open) => !open)}>
           <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
         </button>

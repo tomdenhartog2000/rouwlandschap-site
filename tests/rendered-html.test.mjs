@@ -235,6 +235,15 @@ test("the landscape explains its sparks once real contributions have loaded", as
   assert.match(landscape, /setShowInteractionHint\(false\); setOpenContribution\(contribution\)/);
 });
 
+test("the landscape menu closes after a click outside it, including inside the visual iframe", async () => {
+  const landscape = await source("components/Landschap.tsx");
+  const visual = await source("public/landschap-visual.html");
+  assert.match(landscape, /landscapeControlRef\.current\?\.contains\(event\.target\)/);
+  assert.match(landscape, /document\.addEventListener\("pointerdown", closeMenuOutside\)/);
+  assert.match(landscape, /rouwdier:landscape-pointerdown/);
+  assert.match(visual, /rouwdier:landscape-pointerdown/);
+});
+
 test("the fixed exhibition starts anonymously without flashing the test landscape", async () => {
   const exhibition = await source("lib/rouwdieren-expositie.ts");
   const store = await source("lib/contribution-store.ts");
