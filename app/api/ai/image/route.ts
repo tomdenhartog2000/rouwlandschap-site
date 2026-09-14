@@ -47,10 +47,10 @@ export async function POST(request: Request) {
     const response = sourceFile
       ? await (() => {
         const body = new FormData();
-        body.set("model", "gpt-image-1-mini");
+        body.set("model", "gpt-image-2.5-flare");
         body.set("prompt", prompt);
         body.set("size", "1024x1024");
-        body.set("quality", "low");
+        body.set("quality", "medium");
         body.set("output_format", "png");
         body.set("image", sourceFile);
         return fetch(endpoint, { method: "POST", headers: openAiHeaders(request, apiKey), body });
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       : await fetch(endpoint, {
         method: "POST",
         headers: openAiHeaders(request, apiKey, true),
-        body: JSON.stringify({ model: "gpt-image-1-mini", prompt, size: "1024x1024", quality: "low", output_format: "png" }),
+        body: JSON.stringify({ model: "gpt-image-2.5-flare", prompt, size: "1024x1024", quality: "medium", output_format: "png" }),
       });
     const result = await response.json() as { data?: Array<{ b64_json?: string }>; error?: { message?: string } };
     const image = result.data?.[0]?.b64_json;

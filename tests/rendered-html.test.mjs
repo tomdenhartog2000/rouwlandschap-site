@@ -192,6 +192,16 @@ test("sound drawing only offers instrument sounds", async () => {
   assert.match(page, /title: "strijkers"/);
 });
 
+test("image generation and editing use Flare at medium quality", async () => {
+  const imageRoute = await source("app/api/ai/image/route.ts");
+
+  assert.equal((imageRoute.match(/gpt-image-2\.5-flare/g) ?? []).length, 2);
+  assert.match(imageRoute, /body\.set\("quality", "medium"\)/);
+  assert.match(imageRoute, /quality: "medium"/);
+  assert.doesNotMatch(imageRoute, /gpt-image-1-mini/);
+  assert.doesNotMatch(imageRoute, /quality(?:"|:),? "low"/);
+});
+
 test("the sound and AI boundary is explicit and a sound-only drawing has no dead-end AI route", async () => {
   const makePage = await source("app/maak/page.tsx");
   const aiPage = await source("app/over-ai/page.tsx");
