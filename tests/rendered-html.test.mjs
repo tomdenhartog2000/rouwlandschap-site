@@ -227,6 +227,14 @@ test("the old landscape path redirects to the single visitor experience", async 
   assert.match(visitorRoute, /components\/Landschap/);
 });
 
+test("the landscape explains its sparks once real contributions have loaded", async () => {
+  const landscape = await source("components/Landschap.tsx");
+  assert.match(landscape, /showInteractionHint && contributions\.length > 0/);
+  assert.match(landscape, /Klik op een van de vonkjes om een rouwdier te openen/);
+  assert.match(landscape, /setTimeout\(\(\) => setShowInteractionHint\(false\), 3_400\)/);
+  assert.match(landscape, /setShowInteractionHint\(false\); setOpenContribution\(contribution\)/);
+});
+
 test("the fixed exhibition starts anonymously without flashing the test landscape", async () => {
   const exhibition = await source("lib/rouwdieren-expositie.ts");
   const store = await source("lib/contribution-store.ts");

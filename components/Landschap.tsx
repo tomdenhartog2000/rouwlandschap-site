@@ -72,6 +72,7 @@ export default function Landschap() {
   const [contributions, setContributions] = useState<TestContribution[]>([]);
   const [openContribution, setOpenContribution] = useState<TestContribution | null>(null);
   const [newContributionId, setNewContributionId] = useState("");
+  const [showInteractionHint, setShowInteractionHint] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -106,6 +107,12 @@ export default function Landschap() {
     const timer = window.setTimeout(() => setNewContributionId(""), 5_000);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!showInteractionHint || contributions.length === 0) return;
+    const timer = window.setTimeout(() => setShowInteractionHint(false), 3_400);
+    return () => window.clearTimeout(timer);
+  }, [contributions.length, showInteractionHint]);
 
   useEffect(() => {
     const updateFullscreenState = () => {
@@ -207,11 +214,12 @@ export default function Landschap() {
           <button type="button" className="visitor-make-link" onClick={() => window.location.assign("/maak")}>Wil jij iets toevoegen?</button></>}
         </div>}
       </div>}
+      {showInteractionHint && contributions.length > 0 && <div className="landscape-interaction-hint" role="status">Klik op een van de vonkjes om een rouwdier te openen.</div>}
       {contributions.map((contribution, index) => {
         const particles = sparkShapes[index % sparkShapes.length].slice(0, 2 + index % 2);
         const palette = sparkPalettes[index % sparkPalettes.length];
         const isNew = contribution.id === newContributionId;
-        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark created-spark-reis-${index % 5}${isNew ? " is-new" : ""}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%`, animationDuration: `${68 + index * 5}s`, animationDelay: `-${index * 12}s` }} onClick={() => setOpenContribution(contribution)} aria-label={`${isNew ? "Jouw nieuwe rouwdier: " : "Open "}${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
+        return <button key={contribution.id} type="button" className={`created-rouwdiers-spark created-spark-reis-${index % 5}${isNew ? " is-new" : ""}`} style={{ left: `${contribution.x}%`, top: `${contribution.y}%`, animationDuration: `${68 + index * 5}s`, animationDelay: `-${index * 12}s` }} onClick={() => { setShowInteractionHint(false); setOpenContribution(contribution); }} aria-label={`${isNew ? "Jouw nieuwe rouwdier: " : "Open "}${contribution.title}`}>{particles.map((particle, particleIndex) => <span key={particleIndex} style={{ "--spark-x": `${20 + (particle.x - 24) * .38}px`, "--spark-y": `${20 + (particle.y - 24) * .38}px`, "--spark-size": `${Math.max(1.5, particle.size * .58)}px`, "--spark-drift-x": `${particle.driftX * .42}px`, "--spark-drift-y": `${particle.driftY * .42}px`, "--spark-delay": `${particle.delay}s`, "--spark-duration": `${particle.duration}s`, "--spark-color": palette.color, "--spark-glow": palette.glow } as CSSProperties} />)}</button>;
       })}
       <button type="button" className="fullscreen-button" aria-label={isFullscreen ? "Sluit schermvullende weergave" : "Open schermvullende weergave"} onClick={toggleFullscreen}>
         <span className="fullscreen-icon" aria-hidden="true" />
